@@ -62,7 +62,6 @@ export function ExpenseForm({
   });
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- adopts the async-resolved active branch as the default once the form's already-empty branch field hasn't been touched
     if (!expense && branch) setValue("branch_id", String(branch.id), { shouldDirty: false });
   }, [branch, expense, setValue]);
 

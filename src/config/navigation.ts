@@ -13,6 +13,8 @@ import {
   Building2,
   Settings,
   CreditCard,
+  ReceiptText,
+  Undo2,
 } from "lucide-react";
 
 export interface NavItem {
@@ -37,6 +39,13 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "dashboard.view", primary: true },
       { label: "POS", href: "/pos", icon: ShoppingCart, permission: "sales.create", feature: "pos", primary: true },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      { label: "Sales History", href: "/sales", icon: ReceiptText, permission: "sales.view" },
+      { label: "Returns", href: "/returns", icon: Undo2, permission: "returns.view" },
     ],
   },
   {

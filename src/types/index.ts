@@ -288,6 +288,7 @@ export interface SaleReturn {
   tax: string | number;
   refund_amount: string | number;
   status: string;
+  created_at: string;
   items?: SaleReturnItem[];
   sale?: Pick<Sale, "id" | "invoice_number">;
 }

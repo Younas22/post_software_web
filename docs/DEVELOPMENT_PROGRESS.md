@@ -116,10 +116,72 @@ Tracks phase-by-phase completion per `docs/POS-Mobile.md`. Updated as each phase
   recent-transactions table + contact card. **Outstanding Balance intentionally omitted** — no AR/AP ledger
   exists in the backend (confirmed in the discovery report), and the spec only asks for it "if supported."
 
-## Remaining phases (07–12)
+## PHASE 07 — Purchases + Expenses ✅ COMPLETE
 
-Not yet started: Purchases+Expenses, Core POS, Sales History+Returns+Receipts, Reports, Business Management,
-Final QA/PWA. This document will be updated as each completes.
+- `/purchases`: status + branch filters, list, `PurchaseForm` (supplier/branch pickers, line items via
+  `ProductCombobox`, live client-side subtotal/discount/tax/total preview labeled "calculated by the server on
+  save" — the created record's real backend totals are what's actually displayed afterward, never the preview).
+  `/purchases/[id]`: items table + totals + Mark Received / Cancel actions (confirм dialogs), wired to
+  `PATCH .../receive` and `.../cancel`.
+- `/expenses`: date-range + branch + category filters, full CRUD (`ExpenseForm`), view page. Category is a
+  fixed frontend list (Rent/Utilities/Salaries/Supplies/Maintenance/Marketing/Transport/Other) since the
+  backend stores it as a free string (no lookup table exists, confirmed in the discovery report) — kept
+  consistent rather than free-text to keep the Expenses-by-category report meaningful.
+- **Critical bug found and fixed by live testing**: `useActiveBranch()` only fetched the branches list for an
+  *unpinned* actor, so a branch-pinned user (Manager/Cashier — `branch_id` set on their account, which is the
+  common case) got `branch: null` everywhere — blank Topbar branch label, and every branch-defaulting form
+  (Purchases, Expenses, and — critically — the upcoming POS) stuck on an empty "Select branch" picker. Fixed to
+  always fetch the list and narrow it to just the pinned branch, so `branch` resolves correctly for everyone.
+  Caught via Playwright testing against the real seeded Demo Owner account (which is branch-pinned) before
+  Phase 08 (POS) could inherit the same bug.
+- **Verified live**: supplier → purchase (with a real line item, real computed total) → received end-to-end
+  against the real API, zero console errors after the fix.
+
+## PHASE 08 — Core POS Sales Engine ✅ COMPLETE
+
+- `/pos`: desktop layout (category rail · product grid · cart panel), mobile (floating cart button → drawer).
+  Debounced product search (name/SKU/barcode) + category filter; Enter-to-add when search narrows to exactly
+  one match (barcode-scanner-friendly). Cart (Zustand store, session-only): add/remove/±qty, per-line discount,
+  a cart-wide "apply discount to all" quick action (Fixed or %), Walk-in/select/inline-create customer.
+  Client-side subtotal/tax/discount preview is clearly a preview — **every real total comes from the backend
+  response**, matching `SaleService`'s server-authoritative pricing exactly (client never sends price/tax/total,
+  only `product_id`/`quantity`/`discount` per the actual `StoreSaleRequest` contract — verified against the
+  real backend code, not assumed).
+- Payment: method picker sourced from the new `GET /payment-methods`, Cash shows Received/Change, other
+  methods take an optional reference. Checkout generates one `client_transaction_id` (UUID) per attempt and
+  **reuses it on retry** — the idempotency contract `SaleService`/`IdempotencyService` require.
+- On failure (e.g. insufficient stock → 409): friendly inline error, **cart is never cleared**, cashier can
+  fix and retry immediately. On success: invoice number, total, Print Receipt (real `window.print()` via a new
+  shared `Receipt` component — also reused by Sales History in Phase 09) / New Sale.
+  Keyboard: F2 focuses search, F4 opens payment, Esc closes the open overlay.
+  Gates: `sales.create` permission, `pos` feature flag, and an available branch — each with its own explained
+  empty state rather than a blank/broken page.
+- **Verified live end-to-end against the real backend** (Playwright): browsed real stock-aware product cards →
+  built a cart → hit a genuine 409 insufficient-stock rejection with the cart correctly preserved → topped up
+  stock via the real `inventory/adjust` API → completed a real sale (`INV-1-260823-…`) → confirmed the product
+  grid's stock count live-updated (50 → 49) → mobile viewport confirmed responsive. Zero console errors.
+
+## PHASE 09 — Sales History + Returns + Receipts ✅ COMPLETE
+
+- Added **Sales History** and **Returns** to the sidebar nav (gated on `sales.view`/`returns.view`) — the
+  master nav list in the spec didn't explicitly enumerate them, but Phase 09 requires the screens and nothing
+  else in the app links to them, so they needed a discoverable entry point.
+- `/sales`: date-range + branch + payment-method + status filters. `/sales/[id]`: items/totals/payment/cashier/
+  branch/customer, Print Receipt (shared `Receipt` component from Phase 08), Return Items action.
+- `/returns`, `/returns/[id]`: list + detail (Original Invoice, Product, Returned Quantity, Reason, Refund
+  Amount). `ReturnModal` (opened from a sale) shows each line's already-returned vs. remaining-returnable
+  quantity — computed by fetching that sale's existing returns and summing per `sale_item_id` client-side
+  (no backend field exposes this directly; verified `SaleItem::returnedQuantity()` is a plain PHP method, not
+  a serialized attribute). The refund-amount preview mirrors `ReturnService`'s own math exactly
+  (`line_total / quantity × returned qty`) — the real `refund_amount` still comes from the API response.
+  Returns never edit/delete the original sale — confirmed against `ReturnService`, which only ever creates a
+  new `SaleReturn` row.
+- **Verified live end-to-end**: opened a real sale, processed a partial return through the modal, got a real
+  `RET-…` reference and refund amount back, "Return processed" toast, zero console errors.
+
+## Remaining phases (10–12)
+
+Not yet started: Reports, Business Management, Final QA/PWA. This document will be updated as each completes.
 
 ---
 

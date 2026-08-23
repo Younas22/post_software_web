@@ -295,6 +295,19 @@
   background: var(--muted);
 }
 
+/*
+ * Off-screen (not display:none) container for a receipt that should only
+ * ever be visible via window.print() — e.g. the hidden copy rendered
+ * alongside the POS success screen. display:none elements never print
+ * regardless of @media print overrides, so this uses an off-screen
+ * position instead, which the print rules below then promote to visible.
+ */
+.print-only {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+}
+
 /* Print styles for receipts (58mm / 80mm / A4) — see components/receipt */
 @media print {
   body * {

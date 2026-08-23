@@ -9,14 +9,23 @@ import { useBranches } from "./use-branches";
  * that; anyone else (Client Owner/Business Admin) picks via the Topbar
  * branch switcher, persisted in useBranchStore, defaulting to their
  * business's main branch (or the first one) the first time it's unset.
+ *
+ * The branch list is always fetched (once authenticated) — a pinned actor
+ * still needs their own branch's full record (name, is_main, ...), not
+ * just its id, so `GET /branches` runs either way and is then narrowed to
+ * just their one branch before being exposed as `branches`.
  */
 export function useActiveBranch() {
   const { user } = useAuth();
   const pinned = user?.branch_id ?? null;
   const { activeBranchId, setActiveBranchId } = useBranchStore();
-  const branchesQuery = useBranches(!pinned && !!user);
+  const branchesQuery = useBranches(!!user);
 
-  const branches = useMemo(() => branchesQuery.data ?? [], [branchesQuery.data]);
+  const allBranches = useMemo(() => branchesQuery.data ?? [], [branchesQuery.data]);
+  const branches = useMemo(
+    () => (pinned ? allBranches.filter((b) => b.id === pinned) : allBranches),
+    [allBranches, pinned]
+  );
 
   useEffect(() => {
     if (pinned || activeBranchId || branches.length === 0) return;
@@ -28,8 +37,8 @@ export function useActiveBranch() {
   const branchId = pinned ?? activeBranchId;
 
   const activeBranch = useMemo(
-    () => branches.find((b) => b.id === branchId) ?? null,
-    [branches, branchId]
+    () => allBranches.find((b) => b.id === branchId) ?? null,
+    [allBranches, branchId]
   );
 
   return {

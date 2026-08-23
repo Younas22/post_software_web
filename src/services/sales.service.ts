@@ -5,6 +5,7 @@ import type { Sale } from "@/types";
 export interface SaleItemPayload {
   product_id: number;
   quantity: number;
+  /** Per-item only — there is no sale-level discount field in the backend (StoreSaleRequest). */
   discount?: number;
 }
 
@@ -20,27 +21,36 @@ export interface CreateSalePayload {
   items: SaleItemPayload[];
   payments: SalePaymentPayload[];
   client_transaction_id: string;
-  discount?: number;
 }
 
 export interface Receipt {
   invoice_number: string;
-  business: { name: string; logo: string | null; address: string | null; phone: string | null };
-  branch: { name: string };
+  sale_date: string;
+  status: string;
+  business: { name: string; logo: string | null; phone: string | null; address: string | null };
+  branch: { name: string; address: string | null; phone: string | null };
   cashier: { name: string };
-  customer: { name: string } | null;
-  items: { name: string; quantity: number; unit_price: number; discount: number; tax: number; line_total: number }[];
+  customer: { name: string; phone: string | null } | null;
+  items: {
+    product_name: string;
+    sku: string;
+    quantity: number;
+    unit_price: number;
+    discount: number;
+    tax: number;
+    line_total: number;
+  }[];
+  payments: { method: string; amount: number; reference: string | null }[];
   subtotal: number;
   discount: number;
   tax: number;
   total: number;
-  payments: { method: string; amount: number }[];
-  date: string;
 }
 
 export const salesService = {
   list: (params?: ListParams) => apiGetList<Sale>("/sales", { params }),
   get: (id: number) => apiGet<Sale>(`/sales/${id}`),
-  create: (payload: CreateSalePayload) => apiPost<Sale>("/sales", payload),
+  /** POST /sales returns the built Receipt directly (see SaleController@store), not a raw Sale. */
+  create: (payload: CreateSalePayload) => apiPost<Receipt>("/sales", payload),
   receipt: (id: number) => apiGet<Receipt>(`/sales/${id}/receipt`),
 };
