@@ -48,6 +48,8 @@ export interface Branch {
 
 export interface ConfigBootstrap {
   business: { id: number; name: string; currency: string; timezone: string } | null;
+  /** The caller's own branch, resolved permission-free — null for an actor with no fixed branch_id (or no business). */
+  branch: { id: number; name: string; is_main: boolean } | null;
   settings: Record<string, unknown>;
   features: string[];
 }

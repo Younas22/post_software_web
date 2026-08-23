@@ -219,10 +219,65 @@ Tracks phase-by-phase completion per `docs/POS-Mobile.md`. Updated as each phase
   seeded Main Branch) — confirmed this is correct enforcement-aware UX, not a bug, by checking the actual
   subscription data. Settings/Profile forms render and prefill real data. Zero console errors.
 
-## Remaining phases (12)
+## PHASE 12 — Final Integration, Security, Performance & PWA QA ✅ COMPLETE
 
-Not yet started: Final Integration, Security, Performance & PWA QA. This document will be updated once
-complete.
+- **Role testing (live, not assumed)**: logged in as a real Cashier account (created through the app's own
+  Employees screen) and found **two real, launch-blocking bugs** that only a genuine role test — not the
+  Client Owner account every earlier phase had been verified with — could surface:
+  1. `EmployeeForm` never sent `business_id` when creating/editing staff. Unlike every other resource
+     controller, `EmployeeController::store()`'s `business_id` does **not** fall back to the actor's own
+     `business_id` — it's `null` unless the request supplies it. A branch-only-assigned employee therefore
+     got `business_id: null`, and `ConfigController` resolves everything (settings, enabled features) from
+     `$user->business`, which is null-safe but returns `features: []` — so the new cashier's POS silently
+     appeared to have no `pos` feature enabled, even though the business genuinely has it. Fixed by having
+     `EmployeeForm` always send the actor's own `business_id`.
+  2. Even after that fix, POS still failed for the cashier with "No branch available" — `useActiveBranch()`
+     resolved a pinned actor's branch via `GET /branches`, which requires the `businesses.view` permission
+     that Cashier does not have (confirmed against `RolePermissionSeeder` — only Owner/Admin/Manager carry
+     it), so the request 403'd. Fixed by adding a permission-free `branch` field to `GET /config` (resolved
+     from `$user->branch`, mirroring the existing `business` field's pattern exactly) and rewriting
+     `useActiveBranch()` to use it for the pinned case, only calling the (permission-gated) branches *list*
+     for unpinned actors, who by construction always hold `businesses.view`. 2 new backend tests lock this in
+     (316/316 backend tests passing).
+  3. Along the way, also synced every password field's client-side validation (Employee create/edit, `/reset-
+     password`, profile "change password") to the backend's *actual* policy (`Password::min(10)->mixedCase()
+     ->numbers()->symbols()`, read from `AppServiceProvider`) — they previously only required 8/10 plain
+     characters, so a user would pass client validation and then get a confusing 422.
+  - Re-verified after fixes: Cashier dashboard/POS/nav all correct (nav shows only Dashboard, POS, Sales
+    History, Returns, Products, Inventory, Customers, Settings, Subscription — no Purchases/Expenses/
+    Suppliers/Employees/Branches/Reports, matching their actual permission set exactly); Client Owner flow
+    re-verified unaffected by the `useActiveBranch` rewrite.
+- **Tenant isolation / subscription / feature flags**: not re-tested manually beyond what's already covered —
+  the backend's own test suite (`TenantIsolationTest`, `RolePermissionTest`, `SubscriptionEnforcementTest`,
+  every module's "cannot view another tenant's X" tests) already exercises these exhaustively at the API
+  layer, and the frontend never invents or trusts a client-supplied tenant id (every service call goes
+  through the actor's own session — there is nothing for the frontend to get wrong here by construction).
+  Feature-flag UI gating (POS, Reports) verified both enabled (Client Owner) and — indirectly, since no
+  feature-disabled business exists in the seed data — the code path was verified by reading
+  `FeatureAccessService`/`hasFeature()` and confirming the empty-state components render correctly given
+  `features: []` (exercised for real during the Cashier bug investigation above, before the fix).
+- **Responsive**: re-checked 768px (tablet) specifically — no horizontal overflow (`scrollWidth >
+  clientWidth` checked programmatically), drawer nav + bottom-tab pattern used below `lg` (1024px) rather
+  than a cramped shrunk desktop layout, confirmed via screenshots on Dashboard/Products/POS. Combined with
+  every earlier phase's 390px (mobile) and 1440px (desktop) checks, all four target breakpoint classes are
+  covered.
+- **Dark mode**: audited POS + payment modal, a dense form (Purchase create, comboboxes + date input),
+  Reports tables, and an open dropdown menu (Employees actions) — all correct, no white-on-white/black-on-
+  black, brand green stays legible on near-black backgrounds.
+- **PWA foundation**: `manifest.webmanifest` + `icon.svg` existed since Phase 01 but referenced two PNG
+  icons that were never generated (`icon-192.png`/`icon-512.png` — a broken manifest reference); rendered
+  real PNGs from the existing SVG and added `apple-touch-icon`/`appleWebApp` metadata for iOS installability.
+  Full offline transaction sync is explicitly out of scope per the spec (Electron's responsibility).
+- **Code quality**: removed the one genuinely unused dependency (`recharts` — every chart-shaped need ended
+  up served by simple CSS bar visualizations instead); `.smoke/` (ad hoc Playwright scripts used throughout
+  this build for live verification) added to `.gitignore`; fixed `.env.example` being accidentally caught by
+  a blanket `.env*` gitignore rule (template files with no secrets should be committed).
+- **Final full-suite gate**: `tsc --noEmit` clean, `eslint` clean (0 errors/warnings across the entire
+  `src/`), `next build` succeeds (30 routes), Laravel `php artisan test` → **316/316 passing**.
+
+## All 12 phases complete.
+
+See `docs/FINAL_DEVELOPMENT_REPORT.md` for the complete summary.
 
 ---
 

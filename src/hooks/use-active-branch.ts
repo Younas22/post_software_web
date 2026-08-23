@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useBranchStore } from "@/store/branch-store";
 import { useBranches } from "./use-branches";
+import type { Branch } from "@/types";
 
 /**
  * Resolves the branch a user is currently working in. A user pinned to one
@@ -10,22 +11,21 @@ import { useBranches } from "./use-branches";
  * branch switcher, persisted in useBranchStore, defaulting to their
  * business's main branch (or the first one) the first time it's unset.
  *
- * The branch list is always fetched (once authenticated) — a pinned actor
- * still needs their own branch's full record (name, is_main, ...), not
- * just its id, so `GET /branches` runs either way and is then narrowed to
- * just their one branch before being exposed as `branches`.
+ * A pinned actor's branch comes from `GET /config`'s `branch` field, not
+ * `GET /branches` — a Cashier has no `businesses.view` permission, so the
+ * branches *list* endpoint 403s for them (found via live Cashier testing);
+ * `/config` resolves the caller's own branch permission-free instead. The
+ * branches list is only ever fetched for an unpinned actor, who by
+ * definition holds a role that does carry `businesses.view`.
  */
 export function useActiveBranch() {
-  const { user } = useAuth();
+  const { user, config } = useAuth();
   const pinned = user?.branch_id ?? null;
   const { activeBranchId, setActiveBranchId } = useBranchStore();
-  const branchesQuery = useBranches(!!user);
+  const branchesQuery = useBranches(!pinned && !!user);
 
   const allBranches = useMemo(() => branchesQuery.data ?? [], [branchesQuery.data]);
-  const branches = useMemo(
-    () => (pinned ? allBranches.filter((b) => b.id === pinned) : allBranches),
-    [allBranches, pinned]
-  );
+  const branches = useMemo(() => (pinned ? [] : allBranches), [allBranches, pinned]);
 
   useEffect(() => {
     if (pinned || activeBranchId || branches.length === 0) return;
@@ -36,17 +36,31 @@ export function useActiveBranch() {
 
   const branchId = pinned ?? activeBranchId;
 
-  const activeBranch = useMemo(
-    () => allBranches.find((b) => b.id === branchId) ?? null,
-    [allBranches, branchId]
-  );
+  // Cheap to recompute each render — not worth the memoization (and the
+  // React Compiler already handles this automatically where it helps).
+  const pinnedBranch: Branch | null =
+    pinned && config?.branch && config.branch.id === pinned
+      ? {
+          id: config.branch.id,
+          business_id: user?.business_id ?? 0,
+          name: config.branch.name,
+          code: null,
+          address: null,
+          phone: null,
+          is_main: config.branch.is_main,
+          status: "active",
+        }
+      : null;
+
+  const activeBranch: Branch | null = pinned ? pinnedBranch : allBranches.find((b) => b.id === branchId) ?? null;
 
   return {
     branchId,
     branch: activeBranch,
-    branches,
+    /** For an unpinned actor: every branch (for the switcher). For a pinned actor: just their own (for pickers that expect a list). */
+    branches: pinned ? (pinnedBranch ? [pinnedBranch] : []) : branches,
     isPinned: pinned !== null,
-    isLoading: branchesQuery.isLoading,
+    isLoading: pinned ? !config : branchesQuery.isLoading,
     setActiveBranchId,
   };
 }

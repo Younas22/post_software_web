@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActiveBranch } from "@/hooks/use-active-branch";
+import { useAuth } from "@/lib/auth/auth-context";
 import { ASSIGNABLE_ROLES } from "@/hooks/use-employees";
 import { ApiClientError } from "@/lib/api/client";
 import { optionalPasswordSchema } from "@/lib/validation";
@@ -38,6 +39,7 @@ export function EmployeeForm({
   submitLabel?: string;
 }) {
   const { branches } = useActiveBranch();
+  const { user } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -66,6 +68,14 @@ export function EmployeeForm({
         password: values.password || undefined,
         role: values.role,
         branch_id: values.branch_id ? Number(values.branch_id) : null,
+        // EmployeeController's business_id defaults to null when omitted —
+        // unlike Product/Customer/etc. it does NOT fall back to the actor's
+        // own business_id server-side, so a fixed-business actor (the
+        // overwhelmingly common single-business case) must send it
+        // explicitly here or the new employee ends up with no business,
+        // which silently breaks every business-scoped feature check for
+        // them (found via live testing — see docs/DEVELOPMENT_PROGRESS.md).
+        business_id: employee?.business_id ?? user?.business_id ?? undefined,
       });
     } catch (err) {
       if (err instanceof ApiClientError && Object.keys(err.errors).length > 0) {
