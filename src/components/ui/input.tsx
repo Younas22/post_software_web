@@ -1,0 +1,29 @@
+import { forwardRef, type InputHTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
+
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = "text", error, ...props }, ref) => {
+    return (
+      <input
+        ref={ref}
+        type={type}
+        className={cn(
+          "flex h-10 w-full rounded-lg border bg-[var(--input-background)] px-3 text-sm text-foreground",
+          "placeholder:text-muted-foreground transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          "file:border-0 file:bg-transparent file:text-sm file:font-medium",
+          error ? "border-error focus-visible:ring-error" : "border-input",
+          className
+        )}
+        aria-invalid={error || undefined}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = "Input";

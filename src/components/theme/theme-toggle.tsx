@@ -16,6 +16,10 @@ export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Client-only mount flag — next-themes' resolved theme is unknown during
+  // SSR, so the active option can't be highlighted correctly until after
+  // hydration. This is next-themes' own documented pattern.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   return (

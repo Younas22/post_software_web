@@ -120,6 +120,8 @@ export interface Product {
   image: string | null;
   category?: Category | null;
   brand?: Brand | null;
+  /** Stock summed across branches (or just the actor's own branch if pinned) — see ProductController. */
+  stock?: number | null;
 }
 
 export interface Inventory {
@@ -352,7 +354,9 @@ export interface DashboardData {
   low_stock_count: number;
   customers_count: number;
   open_cash_session: { id: number; opening_cash: string | number; opened_at: string } | null;
-  recent_sales: Sale[];
+  recent_sales: (Pick<Sale, "id" | "invoice_number" | "customer_id" | "user_id" | "branch_id" | "total" | "status" | "sale_date" | "customer" | "user" | "branch"> & {
+    payments?: Payment[];
+  })[];
   top_products: { product_id: number; units_sold: number; revenue: string | number; product?: Pick<Product, "id" | "name" | "sku"> }[];
 }
 

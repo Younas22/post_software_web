@@ -19,6 +19,16 @@ export function setToken(token: string | null) {
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost/post_software/api/v1";
 
+/** The Laravel app's own origin+path root (baseURL minus the /api/v1 suffix) — used to build storage/asset URLs. */
+const backendRoot = baseURL.replace(/\/api\/v1\/?$/, "");
+
+/** Resolves a Laravel `Storage::disk('public')` relative path (e.g. `products/abc.jpg`) into an absolute URL. */
+export function storageUrl(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${backendRoot}/storage/${path.replace(/^\/?storage\//, "")}`;
+}
+
 export const http = axios.create({
   baseURL,
   headers: { Accept: "application/json" },

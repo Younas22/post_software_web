@@ -81,6 +81,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function Toaster({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: string) => void }) {
   const [mounted, setMounted] = useState(false);
+  // createPortal needs document.body, unavailable during SSR — this flips
+  // true on the client only, after hydration.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
   if (typeof document === "undefined" || !mounted) return null;
