@@ -9,6 +9,7 @@ import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
 import { authService } from "@/services/auth.service";
 import { ApiClientError } from "@/lib/api/client";
+import { passwordSchema } from "@/lib/validation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Alert } from "@/components/ui/alert";
 
 const schema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: passwordSchema,
     password_confirmation: z.string(),
   })
   .refine((data) => data.password === data.password_confirmation, {
@@ -90,7 +91,12 @@ function ResetPasswordForm() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           {serverError && <Alert variant="error">{serverError}</Alert>}
-          <Field label="New password" htmlFor="password" error={errors.password?.message}>
+          <Field
+            label="New password"
+            htmlFor="password"
+            error={errors.password?.message}
+            hint={errors.password ? undefined : "At least 10 characters, with upper/lowercase letters, a number, and a symbol"}
+          >
             <Input id="password" type="password" autoComplete="new-password" autoFocus error={!!errors.password} {...register("password")} />
           </Field>
           <Field label="Confirm password" htmlFor="password_confirmation" error={errors.password_confirmation?.message}>

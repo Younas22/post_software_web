@@ -179,9 +179,50 @@ Tracks phase-by-phase completion per `docs/POS-Mobile.md`. Updated as each phase
 - **Verified live end-to-end**: opened a real sale, processed a partial return through the modal, got a real
   `RET-…` reference and refund amount back, "Return processed" toast, zero console errors.
 
-## Remaining phases (10–12)
+## PHASE 10 — Business Reports ✅ COMPLETE
 
-Not yet started: Reports, Business Management, Final QA/PWA. This document will be updated as each completes.
+- `/reports`: 7 tabs (Sales, Purchases, Expenses, Inventory, Products, Customers, Profit), each with its own
+  date-range preset (Today/Yesterday/7/30 Days/This/Last Month/Custom) + branch filter, backed 1:1 by the
+  corresponding `GET /reports/*` endpoint — no client-computed aggregates. Expenses adds a by-category bar
+  breakdown; Profit surfaces the backend's own documented caveat (cost estimated from *current* purchase price,
+  not historical) as an inline note rather than hiding the limitation.
+  Export (CSV/PDF) is **not implemented** — confirmed no export endpoint exists anywhere in the discovery
+  report, and the spec says to add it only "if the Laravel API supports export."
+- **Critical bug found and fixed by live testing against the real MySQL database** (not just the SQLite-backed
+  test suite): `ReportController::inventory()`'s summary query cloned a builder that already carried
+  `select('inventories.*')`, then appended aggregate `selectRaw()` columns onto it — SQLite's lenient GROUP BY
+  silently accepted the resulting mixed raw+aggregate SELECT (so all 314 backend tests still passed), but MySQL's
+  strict mode correctly rejects it (`Error 1140: Mixing of GROUP columns with no GROUP BY`), so the endpoint
+  500'd on real data. This was a **pre-existing bug**, not something my own `out_of_stock_count`/`product_count`
+  additions introduced — it only surfaced because those two extra aggregate columns are what I was testing live.
+  Fixed by giving the summary and paginated-rows queries their own independent `select()` off a shared unselected
+  base. Re-verified: 314/314 backend tests still pass, and the live endpoint now returns correctly against MySQL.
+- **Verified live**: all 7 tabs render real figures against the seeded data, correct empty/loading states, zero
+  console errors after the fix.
+
+## PHASE 11 — Business Management ✅ COMPLETE
+
+- `/employees`: list (search, seat usage "1/3 used" from `GET /subscription`), create/edit (`EmployeeForm`:
+  name/email/password/role/branch — role limited to the 3 slugs the backend actually allows staff to be
+  assigned, `business-admin`/`manager`/`cashier`, confirmed against `StoreEmployeeRequest`'s exclusion list),
+  activate/deactivate. "New Employee" disables at the plan's user-seat limit with an upgrade prompt.
+- `/branches`: list + modal create/edit (name/code/phone/address/active) + activate/deactivate, same
+  limit-aware disabling for `max_branches`. Uses the new `GET/POST/PATCH /branches` endpoints.
+- `/settings`: **Business** tab (name/phone/email/address/currency/timezone/logo via `PUT /business`),
+  **Receipt & Tax** tab (tax_rate/invoice_prefix/receipt_footer via `PUT /business/settings`, the registry-driven
+  settings endpoint), **Appearance** tab (theme toggle). `/settings/profile`: name/email + change-password,
+  using the new `PUT /user/profile` and `PUT /user/password`.
+- `/subscription`: plan name/price/status/dates, usage bars (Users/Branches/Devices, red at 100%), enabled
+  features — all from the new `GET /subscription` endpoint.
+- **Verified live**: employee list shows real seat usage, branch limit correctly disables creation with an
+  "Upgrade your plan" message once at capacity (Starter plan's `max_branches: 1`, already consumed by the
+  seeded Main Branch) — confirmed this is correct enforcement-aware UX, not a bug, by checking the actual
+  subscription data. Settings/Profile forms render and prefill real data. Zero console errors.
+
+## Remaining phases (12)
+
+Not yet started: Final Integration, Security, Performance & PWA QA. This document will be updated once
+complete.
 
 ---
 

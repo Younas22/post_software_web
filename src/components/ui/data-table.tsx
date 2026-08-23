@@ -21,7 +21,7 @@ export interface DataTableColumn<T> {
  * every module (Products, Customers, Suppliers, Purchases, ...) renders its
  * list through this so behavior/appearance never drifts between them.
  */
-export function DataTable<T extends { id: number | string }>({
+export function DataTable<T>({
   columns,
   rows,
   isLoading,
@@ -32,6 +32,7 @@ export function DataTable<T extends { id: number | string }>({
   emptyDescription,
   emptyAction,
   onRowClick,
+  getRowKey = (row: T) => (row as { id: number | string }).id,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -43,6 +44,8 @@ export function DataTable<T extends { id: number | string }>({
   emptyDescription?: string;
   emptyAction?: ReactNode;
   onRowClick?: (row: T) => void;
+  /** Row key extractor — defaults to `row.id`; pass this for rows with no `id` (e.g. report aggregate rows keyed by product_id/customer_id). */
+  getRowKey?: (row: T) => number | string;
 }) {
   return (
     <Card className="overflow-hidden py-0">
@@ -64,7 +67,7 @@ export function DataTable<T extends { id: number | string }>({
           <TableBody>
             {rows.map((row) => (
               <TableRow
-                key={row.id}
+                key={getRowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={onRowClick ? "cursor-pointer" : undefined}
               >

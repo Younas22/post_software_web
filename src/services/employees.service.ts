@@ -5,11 +5,11 @@ import type { Employee } from "@/types";
 export interface EmployeePayload {
   name: string;
   email: string;
+  /** Required on create, optional (leave blank to keep current) on update. */
   password?: string;
   role: string;
   business_id?: number | null;
   branch_id?: number | null;
-  status?: "active" | "inactive";
 }
 
 export const employeesService = {

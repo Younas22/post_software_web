@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useBusiness, useBusinessMutations } from "@/hooks/use-business";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useToast } from "@/components/ui/toast";
+import { ApiClientError, storageUrl } from "@/lib/api/client";
+import { Avatar } from "@/components/ui/avatar";
+
+export default function SettingsPage() {
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("settings.update") || hasPermission("businesses.update");
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your business profile and preferences.</p>
+      </div>
+
+      <Tabs defaultValue="business">
+        <TabsList>
+          <TabsTrigger value="business">Business</TabsTrigger>
+          <TabsTrigger value="receipt">Receipt &amp; Tax</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+        </TabsList>
+        <TabsContent value="business">
+          <BusinessTab readOnly={!canManage} />
+        </TabsContent>
+        <TabsContent value="receipt">
+          <ReceiptTaxTab readOnly={!canManage} />
+        </TabsContent>
+        <TabsContent value="appearance">
+          <Card>
+            <CardContent className="flex items-center justify-between pt-6">
+              <div>
+                <p className="text-sm font-medium text-foreground">Theme</p>
+                <p className="text-xs text-muted-foreground">Choose how POS looks on this device.</p>
+              </div>
+              <ThemeToggle />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function BusinessTab({ readOnly }: { readOnly: boolean }) {
+  const { data: business, isLoading } = useBusiness();
+  const { update } = useBusinessMutations();
+  const { toast } = useToast();
+  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", currency: "", timezone: "" });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Seeds the local form once the business record loads (arrives async, not
+  // known at first render).
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (business) {
+      setForm({
+        name: business.name ?? "",
+        phone: business.phone ?? "",
+        email: business.email ?? "",
+        address: business.address ?? "",
+        currency: business.currency ?? "USD",
+        timezone: business.timezone ?? "UTC",
+      });
+    }
+  }, [business]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  if (isLoading) return <LoadingState label="Loading business…" />;
+
+  const submit = async () => {
+    setError(null);
+    try {
+      await update.mutateAsync({ ...form, logo: logoFile });
+      toast({ title: "Business updated", variant: "success" });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        {error && <Alert variant="error">{error}</Alert>}
+        <div className="flex items-center gap-4">
+          <Avatar name={form.name} src={logoFile ? URL.createObjectURL(logoFile) : storageUrl(business?.logo)} size="lg" />
+          <div>
+            <input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} disabled={readOnly} />
+            <Button variant="outline" size="sm" type="button" disabled={readOnly} onClick={() => document.getElementById("logo-upload")?.click()}>
+              Change logo
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Business name" required className="sm:col-span-2">
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={readOnly} />
+          </Field>
+          <Field label="Phone">
+            <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} disabled={readOnly} />
+          </Field>
+          <Field label="Email">
+            <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={readOnly} />
+          </Field>
+          <Field label="Address" className="sm:col-span-2">
+            <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} disabled={readOnly} />
+          </Field>
+          <Field label="Currency" required hint="3-letter code, e.g. USD">
+            <Input value={form.currency} maxLength={3} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} disabled={readOnly} />
+          </Field>
+          <Field label="Timezone" required hint="e.g. UTC, Asia/Karachi">
+            <Input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} disabled={readOnly} />
+          </Field>
+        </div>
+        {!readOnly && (
+          <div className="flex justify-end border-t border-border pt-4">
+            <Button onClick={submit} loading={update.isPending}>
+              Save changes
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReceiptTaxTab({ readOnly }: { readOnly: boolean }) {
+  const { data: business } = useBusiness();
+  const { updateSettings } = useBusinessMutations();
+  const { toast } = useToast();
+  const [taxRate, setTaxRate] = useState("");
+  const [invoicePrefix, setInvoicePrefix] = useState("INV-");
+  const [receiptFooter, setReceiptFooter] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setError(null);
+    try {
+      await updateSettings.mutateAsync({
+        tax_rate: taxRate ? Number(taxRate) : null,
+        invoice_prefix: invoicePrefix || null,
+        receipt_footer: receiptFooter || null,
+      });
+      toast({ title: "Settings saved", variant: "success" });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        {error && <Alert variant="error">{error}</Alert>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Default tax rate (%)" hint="Applied when a product has no tax rate of its own">
+            <Input type="number" min="0" max="100" step="0.01" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} disabled={readOnly} />
+          </Field>
+          <Field label="Invoice prefix">
+            <Input value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value)} disabled={readOnly} />
+          </Field>
+          <Field label="Receipt footer" className="sm:col-span-2" hint={`Shown at the bottom of every receipt for ${business?.name ?? "your business"}`}>
+            <Input value={receiptFooter} onChange={(e) => setReceiptFooter(e.target.value)} disabled={readOnly} />
+          </Field>
+        </div>
+        {!readOnly && (
+          <div className="flex justify-end border-t border-border pt-4">
+            <Button onClick={submit} loading={updateSettings.isPending}>
+              Save changes
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

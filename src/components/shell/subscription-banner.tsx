@@ -1,21 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
-import { subscriptionService } from "@/services/subscription.service";
-import { useAuth } from "@/lib/auth/auth-context";
+import { useSubscription } from "@/hooks/use-subscription";
 import { formatDate } from "@/lib/utils";
 
 /** Persistent strip warning about trial/expiring/expired subscription state — never blocks navigation, Laravel remains the real gate. */
 export function SubscriptionBanner() {
-  const { user } = useAuth();
-  const { data } = useQuery({
-    queryKey: ["subscription", "banner"],
-    queryFn: () => subscriptionService.get(),
-    enabled: !!user && !user.is_super_admin,
-    staleTime: 5 * 60_000,
-  });
+  const { data } = useSubscription();
 
   const sub = data?.subscription;
   if (!sub) return null;
