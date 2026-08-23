@@ -19,10 +19,14 @@ import type { Product } from "@/types";
 import type { ProductPayload } from "@/services/products.service";
 import { cn } from "@/lib/utils";
 
+const numeric = (v: string) => (v === "" ? undefined : Number(v));
+
 // Plain z.number() (not z.coerce.number()) so the schema's input and output
 // types match exactly — react-hook-form's Resolver type requires that.
-// Numeric <input>s are registered with { valueAsNumber: true } below so the
-// browser string value is already a number by the time it reaches here.
+// Numeric <input>s are registered with a setValueAs below that maps "" to
+// undefined and everything else to Number(v) — plain valueAsNumber turns an
+// empty optional field into NaN, which a required-vs-optional zod schema
+// can't distinguish from "invalid".
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   sku: z.string().min(1, "SKU is required").max(100),
@@ -148,7 +152,7 @@ export function ProductForm({
                   name="category_id"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Category">
                         <SelectValue placeholder="No category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -168,7 +172,7 @@ export function ProductForm({
                   name="brand_id"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Brand">
                         <SelectValue placeholder="No brand" />
                       </SelectTrigger>
                       <SelectContent>
@@ -192,19 +196,19 @@ export function ProductForm({
             <h2 className="mb-4 text-sm font-semibold text-foreground">Pricing &amp; stock</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Purchase price" required error={errors.purchase_price?.message}>
-                <Input type="number" step="0.01" min="0" {...register("purchase_price", { valueAsNumber: true })} error={!!errors.purchase_price} />
+                <Input type="number" step="0.01" min="0" {...register("purchase_price", { setValueAs: numeric })} error={!!errors.purchase_price} />
               </Field>
               <Field label="Sale price" required error={errors.sale_price?.message}>
-                <Input type="number" step="0.01" min="0" {...register("sale_price", { valueAsNumber: true })} error={!!errors.sale_price} />
+                <Input type="number" step="0.01" min="0" {...register("sale_price", { setValueAs: numeric })} error={!!errors.sale_price} />
               </Field>
               <Field label="Tax rate (%)" error={errors.tax_rate?.message} hint="Leave blank to use business default">
-                <Input type="number" step="0.01" min="0" max="100" {...register("tax_rate", { valueAsNumber: true })} error={!!errors.tax_rate} />
+                <Input type="number" step="0.01" min="0" max="100" {...register("tax_rate", { setValueAs: numeric })} error={!!errors.tax_rate} />
               </Field>
               <Field label="Unit" error={errors.unit?.message} hint="e.g. pcs, kg, box">
                 <Input {...register("unit")} error={!!errors.unit} />
               </Field>
               <Field label="Minimum stock" error={errors.minimum_stock?.message} hint="Triggers a low-stock alert">
-                <Input type="number" min="0" step="1" {...register("minimum_stock", { valueAsNumber: true })} error={!!errors.minimum_stock} />
+                <Input type="number" min="0" step="1" {...register("minimum_stock", { setValueAs: numeric })} error={!!errors.minimum_stock} />
               </Field>
             </div>
           </div>

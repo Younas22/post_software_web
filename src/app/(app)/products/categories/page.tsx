@@ -28,6 +28,7 @@ export default function CategoriesPage() {
         <TabsContent value="categories">
           <NameStatusManager
             label="Category"
+            pluralLabel="Categories"
             items={categories.data?.data ?? []}
             isLoading={categories.isLoading}
             onCreate={(p) => categoryMutations.create.mutateAsync(p)}
@@ -39,6 +40,7 @@ export default function CategoriesPage() {
         <TabsContent value="brands">
           <NameStatusManager
             label="Brand"
+            pluralLabel="Brands"
             items={brands.data?.data ?? []}
             isLoading={brands.isLoading}
             onCreate={(p) => brandMutations.create.mutateAsync(p)}

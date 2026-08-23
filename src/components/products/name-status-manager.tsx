@@ -25,6 +25,7 @@ interface Payload {
 
 export function NameStatusManager({
   label,
+  pluralLabel,
   items,
   isLoading,
   onCreate,
@@ -33,6 +34,8 @@ export function NameStatusManager({
   isMutating,
 }: {
   label: string;
+  /** e.g. "Categories" for label="Category" — irregular plurals can't be derived by appending "s". */
+  pluralLabel: string;
   items: Entity[];
   isLoading: boolean;
   onCreate: (payload: Payload) => Promise<unknown>;
@@ -107,7 +110,9 @@ export function NameStatusManager({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{items.length} {label.toLowerCase()}{items.length === 1 ? "" : "s"}</p>
+        <p className="text-sm text-muted-foreground">
+          {items.length} {items.length === 1 ? label.toLowerCase() : pluralLabel.toLowerCase()}
+        </p>
         <Button size="sm" onClick={openCreate}>
           <Plus /> New {label}
         </Button>
@@ -117,7 +122,7 @@ export function NameStatusManager({
         {isLoading ? (
           <TableSkeleton columns={3} rows={4} />
         ) : items.length === 0 ? (
-          <EmptyState title={`No ${label.toLowerCase()}s yet`} description={`Create your first ${label.toLowerCase()} to start organizing products.`} />
+          <EmptyState title={`No ${pluralLabel.toLowerCase()} yet`} description={`Create your first ${label.toLowerCase()} to start organizing products.`} />
         ) : (
           <Table>
             <TableHeader>

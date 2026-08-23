@@ -63,13 +63,63 @@ Tracks phase-by-phase completion per `docs/POS-Mobile.md`. Updated as each phase
   page itself doesn't exist yet, built in Phase 03).
 - **Checks**: `tsc --noEmit` clean, `eslint` clean (0 errors/warnings), `next build` succeeds.
 
-## PHASE 03 — Business Dashboard 🚧 IN PROGRESS
+## PHASE 03 — Business Dashboard ✅ COMPLETE
 
-## Remaining phases (04–12)
+- `/dashboard`: 6 stat cards (Today's Sales/Orders, Low Stock, Customers, Expenses, Est. Profit) from
+  `GET /dashboard`; date-range "Sales overview" (Today/Yesterday/7/30 Days/This/Last Month/Custom) from
+  `GET /reports/sales`; Recent Sales + Top Products (30d) tables; Low Stock table via `GET /inventory/low-stock`.
+  Real empty states ("No sales yet") when a business has no data — never fake numbers. A business-less account
+  (Super Admin) gets one clear explanation instead of six broken widgets, instead of an infinite loading state.
+- **Verified live** (Playwright, both `admin@possaas.test` and `demo.owner@possaas.test` seed accounts): correct
+  403→friendly-message handling for the Super Admin edge case; real trial-subscription banner ("Your trial ends
+  Sep 6, 2026") for the Demo Client Owner; light/dark/mobile all render correctly; zero console errors.
 
-Not yet started: Products+Categories, Inventory, Customers+Suppliers, Purchases+Expenses, Core POS, Sales
-History+Returns+Receipts, Reports, Business Management, Final QA/PWA. This document will be updated as each
-completes.
+## PHASE 04 — Products + Categories ✅ COMPLETE
+
+- `/products`: search (debounced) + category/status filters + pagination, columns Product/SKU/Barcode/Category/
+  Price/**Stock**/Status/Actions. `Product.stock` is a new backend aggregate (`ProductController` `withSum`/
+  `loadSum` over a new `Product::inventories()` relation) — summed across the business for an unpinned actor,
+  scoped to just their own branch for a pinned one (Manager/Cashier), matching every other branch-scoped query.
+  2 new backend tests cover both cases; 312→314 backend tests still passing.
+- `/products/new`, `/products/[id]/edit`: shared `ProductForm` (name, SKU, barcode, category, brand, purchase/
+  sale price, tax rate, unit, minimum stock, status, image upload with preview) — react-hook-form + zod,
+  server-side 422 errors mapped back to fields.
+- `/products/[id]`: basic info, pricing + margin, stock (current vs minimum), recent stock-movement ledger
+  (`GET /products/{id}/movements`) as the "activity" section — real data, not a fabricated summary.
+- `/products/categories`: tabbed Categories/Brands manager (`NameStatusManager`, reused for both) — list/create/
+  edit/delete with a confirm dialog.
+- **Fixed during build**: `Field` now auto-generates a matching `id`/`htmlFor` pair (was previously unlabeled
+  for screen readers unless a call site remembered to wire it manually); irregular-plural labels ("Category" →
+  "Categories") no longer naively appended with "s".
+- **Verified live** (Playwright): category creation, product creation (multipart image field present, real
+  validation), product list/view with real stock figures, all render correctly with zero console errors.
+
+## PHASE 05 — Inventory Management ✅ COMPLETE
+
+- `/inventory`: 4 stat cards (Total Products, Stock Value, Low Stock, Out of Stock) sourced from
+  `GET /reports/inventory` (extended with new `out_of_stock_count`/`product_count` aggregates — additive,
+  16/16 report tests still passing) + product catalog count. Tabs: **Stock Levels** (`GET /inventory`, Product/
+  SKU/Branch/Stock/Minimum/Status) and **Stock Movements** (new `GET /stock-movements` global feed — Product/
+  Type/Quantity/Branch/User/Date). Branch filter for unpinned actors (Owner/Admin); a pinned actor
+  (Manager/Cashier) only ever sees their own branch, matching backend scoping.
+- Stock Adjustment modal (`POST /inventory/adjust`): searchable `ProductCombobox` (new shared component, reused
+  later by Purchases/POS), direction (+/−) + quantity + a reason picker (frontend-only convenience, folded into
+  the single backend `notes` field — no schema invented). Deep-linkable via `/inventory?product_id=`, wired from
+  the Product view page's "Adjust" action.
+
+## PHASE 06 — Customers + Suppliers ✅ COMPLETE
+
+- `/customers`, `/suppliers`: search + status filter + pagination lists; shared `PartyForm` (name/phone/email/
+  address/notes/status) for both create and edit, since the two resources are field-identical.
+  `/customers/[id]`, `/suppliers/[id]`: profile pages with real Total Sales/Orders (`GET /reports/sales`
+  scoped by `customer_id`) or Total Purchases/Orders (`GET /reports/purchases` scoped by `supplier_id`) +
+  recent-transactions table + contact card. **Outstanding Balance intentionally omitted** — no AR/AP ledger
+  exists in the backend (confirmed in the discovery report), and the spec only asks for it "if supported."
+
+## Remaining phases (07–12)
+
+Not yet started: Purchases+Expenses, Core POS, Sales History+Returns+Receipts, Reports, Business Management,
+Final QA/PWA. This document will be updated as each completes.
 
 ---
 
