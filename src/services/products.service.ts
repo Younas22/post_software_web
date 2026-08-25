@@ -1,6 +1,6 @@
 import { apiDelete, apiGet, apiGetList, apiPost } from "@/lib/api/client";
 import type { ListParams } from "@/lib/api/types";
-import type { Product } from "@/types";
+import type { Product, ProductType } from "@/types";
 
 export interface ProductPayload {
   name: string;
@@ -8,6 +8,8 @@ export interface ProductPayload {
   barcode?: string | null;
   category_id?: number | null;
   brand_id?: number | null;
+  /** Defaults to "product" server-side when omitted. */
+  type?: ProductType;
   purchase_price: number;
   sale_price: number;
   tax_rate?: number | null;

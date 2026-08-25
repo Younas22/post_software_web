@@ -30,6 +30,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [status, setStatus] = useState<string | undefined>();
+  const [type, setType] = useState<string | undefined>();
   const [page, setPage] = useState(1);
 
   const categories = useCategories({ per_page: 100, status: "active" });
@@ -37,6 +38,7 @@ export default function ProductsPage() {
     search: search || undefined,
     category_id: categoryId ? Number(categoryId) : undefined,
     status,
+    type,
     page,
     per_page: 15,
   });
@@ -62,7 +64,7 @@ export default function ProductsPage() {
     }
   };
 
-  const activeFilters = [categoryId, status].filter(Boolean).length;
+  const activeFilters = [categoryId, status, type].filter(Boolean).length;
 
   const columns: DataTableColumn<Product>[] = [
     {
@@ -76,10 +78,22 @@ export default function ProductsPage() {
       ),
     },
     { key: "sku", header: "SKU", render: (p) => <span className="text-muted-foreground">{p.sku}</span> },
+    {
+      key: "type",
+      header: "Type",
+      render: (p) =>
+        p.type === "service" ? (
+          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-medium text-info">Service</span>
+        ) : (
+          <span className="text-muted-foreground">Product</span>
+        ),
+    },
     { key: "barcode", header: "Barcode", render: (p) => <span className="text-muted-foreground">{p.barcode ?? "—"}</span> },
     { key: "category", header: "Category", render: (p) => p.category?.name ?? "—" },
     { key: "price", header: "Price", render: (p) => formatCurrency(p.sale_price, currency) },
-    { key: "stock", header: "Stock", render: (p) => (p.stock ?? 0) },
+    // A service has no inventory row (see Product.isService() / SaleService), so
+    // "0" here would misleadingly read as out-of-stock rather than not-applicable.
+    { key: "stock", header: "Stock", render: (p) => (p.type === "service" ? "—" : (p.stock ?? 0)) },
     { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
     {
       key: "actions",
@@ -135,7 +149,17 @@ export default function ProductsPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Search value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search by name, SKU, or barcode…" className="sm:max-w-xs" />
-        <FilterBar activeCount={activeFilters} onClear={() => { setCategoryId(undefined); setStatus(undefined); setPage(1); }}>
+        <FilterBar activeCount={activeFilters} onClear={() => { setCategoryId(undefined); setStatus(undefined); setType(undefined); setPage(1); }}>
+          <FilterSelect
+            label="Type"
+            placeholder="Products & services"
+            value={type}
+            onChange={(v) => { setType(v); setPage(1); }}
+            options={[
+              { label: "Product", value: "product" },
+              { label: "Service", value: "service" },
+            ]}
+          />
           <FilterSelect
             label="Category"
             placeholder="All categories"
@@ -164,10 +188,10 @@ export default function ProductsPage() {
         onPageChange={setPage}
         onRowClick={(p) => router.push(`/products/${p.id}`)}
         emptyIcon={Package}
-        emptyTitle={search || categoryId || status ? "No products match your filters" : "No products yet"}
-        emptyDescription={search || categoryId || status ? "Try adjusting your search or filters." : "Add your first product to start selling."}
+        emptyTitle={search || categoryId || status || type ? "No products match your filters" : "No products yet"}
+        emptyDescription={search || categoryId || status || type ? "Try adjusting your search or filters." : "Add your first product to start selling."}
         emptyAction={
-          canCreate && !search && !categoryId && !status ? (
+          canCreate && !search && !categoryId && !status && !type ? (
             <Button asChild size="sm">
               <Link href="/products/new">
                 <Plus /> New Product

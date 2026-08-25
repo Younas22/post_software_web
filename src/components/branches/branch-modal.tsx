@@ -22,6 +22,7 @@ export function BranchModal({ open, onOpenChange, branch }: { open: boolean; onO
   const [address, setAddress] = useState("");
   const [active, setActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   // Resets the form to the target branch's values (or blank, for create)
   // each time the modal opens.
@@ -34,12 +35,14 @@ export function BranchModal({ open, onOpenChange, branch }: { open: boolean; onO
       setAddress(branch?.address ?? "");
       setActive(branch ? branch.status === "active" : true);
       setError(null);
+      setFieldErrors({});
     }
   }, [open, branch]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const submit = async () => {
     setError(null);
+    setFieldErrors({});
     if (!name.trim()) {
       setError("Name is required.");
       return;
@@ -55,7 +58,17 @@ export function BranchModal({ open, onOpenChange, branch }: { open: boolean; onO
       }
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
+      if (err instanceof ApiClientError) {
+        // Surface the REAL per-field reason (e.g. "business_id: A business
+        // could not be determined for this request") instead of only the
+        // generic "The given data was invalid." — that message alone gives
+        // the user nothing to act on.
+        setFieldErrors(err.errors);
+        const flat = Object.values(err.errors).flat();
+        setError(flat.length > 0 ? flat.join(" ") : err.message);
+      } else {
+        setError("Something went wrong.");
+      }
     }
   };
 
@@ -67,19 +80,19 @@ export function BranchModal({ open, onOpenChange, branch }: { open: boolean; onO
         </ModalHeader>
         <div className="flex flex-col gap-4">
           {error && <Alert variant="error">{error}</Alert>}
-          <Field label="Name" required>
-            <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <Field label="Name" required error={fieldErrors.name?.[0]}>
+            <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus error={!!fieldErrors.name} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Code" hint="Optional short identifier">
-              <Input value={code} onChange={(e) => setCode(e.target.value)} />
+            <Field label="Code" hint={fieldErrors.code ? undefined : "Optional short identifier"} error={fieldErrors.code?.[0]}>
+              <Input value={code} onChange={(e) => setCode(e.target.value)} error={!!fieldErrors.code} />
             </Field>
-            <Field label="Phone">
-              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Field label="Phone" error={fieldErrors.phone?.[0]}>
+              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={!!fieldErrors.phone} />
             </Field>
           </div>
-          <Field label="Address">
-            <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
+          <Field label="Address" error={fieldErrors.address?.[0]}>
+            <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} error={!!fieldErrors.address} />
           </Field>
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
             <span className="text-sm font-medium text-foreground">Active</span>

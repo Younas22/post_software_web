@@ -20,8 +20,14 @@ import { useToast } from "@/components/ui/toast";
 import { customersService } from "@/services/customers.service";
 import { salesService, type Receipt } from "@/services/sales.service";
 import { ApiClientError } from "@/lib/api/client";
-import { formatCurrency } from "@/lib/utils";
-import type { Product, PaymentMethod } from "@/types";
+import { cn, formatCurrency } from "@/lib/utils";
+import type { Product, PaymentMethod, ProductType } from "@/types";
+
+const ITEM_TYPE_OPTIONS: { label: string; value: ProductType | undefined }[] = [
+  { label: "All", value: undefined },
+  { label: "Products", value: "product" },
+  { label: "Services", value: "service" },
+];
 
 export default function PosPage() {
   const { config, hasFeature, hasPermission } = useAuth();
@@ -31,6 +37,7 @@ export default function PosPage() {
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [itemType, setItemType] = useState<ProductType | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -41,7 +48,7 @@ export default function PosPage() {
   const clientTransactionId = useRef(crypto.randomUUID());
 
   const { lines, customer, addProduct, setCustomer, clear } = useCartStore();
-  const products = usePosProducts({ search, categoryId, page });
+  const products = usePosProducts({ search, categoryId, type: itemType, page });
 
   // Keyboard shortcuts: F2 focus search, F4 open payment, Esc close overlays.
   useEffect(() => {
@@ -144,13 +151,36 @@ export default function PosPage() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-border p-4">
-          <Search
-            ref={searchInputRef}
-            value={search}
-            onChange={(v) => { setSearch(v); setPage(1); }}
-            onEnter={handleSearchEnter}
-            placeholder="Search or scan barcode… (F2)"
-          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <Search
+                ref={searchInputRef}
+                value={search}
+                onChange={(v) => { setSearch(v); setPage(1); }}
+                onEnter={handleSearchEnter}
+                placeholder="Search or scan barcode… (F2)"
+              />
+            </div>
+            {/* Products vs. Services — a service is a sellable, non-inventory
+                item (see ProductController's `type` field); this filter
+                reuses the same segmented-pill pattern as DiscountPopover's
+                percent/fixed toggle rather than introducing a new control. */}
+            <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-0.5">
+              {ITEM_TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => { setItemType(opt.value); setPage(1); }}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                    itemType === opt.value ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="mt-3 lg:hidden">
             <CategoryRail activeCategoryId={categoryId} onSelect={(id) => { setCategoryId(id); setPage(1); }} />
           </div>

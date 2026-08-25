@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ImagePlus, X } from "lucide-react";
@@ -30,6 +30,7 @@ const numeric = (v: string) => (v === "" ? undefined : Number(v));
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   sku: z.string().min(1, "SKU is required").max(100),
+  type: z.enum(["product", "service"]),
   barcode: z.string().max(100).optional().or(z.literal("")),
   category_id: z.string().optional(),
   brand_id: z.string().optional(),
@@ -73,6 +74,7 @@ export function ProductForm({
     defaultValues: {
       name: product?.name ?? "",
       sku: product?.sku ?? "",
+      type: product?.type ?? "product",
       barcode: product?.barcode ?? "",
       category_id: product?.category_id ? String(product.category_id) : undefined,
       brand_id: product?.brand_id ? String(product.brand_id) : undefined,
@@ -86,6 +88,16 @@ export function ProductForm({
     },
   });
 
+  // A service is a sellable, non-inventory item — see Product.isService() /
+  // SaleService, which skip stock checks and deduction entirely for it,
+  // regardless of what's stored in unit/minimum_stock. Hiding the
+  // stock-tracking field here just avoids implying it does something it
+  // doesn't; the value itself is unused server-side for services.
+  // useWatch (not the destructured watch()) so the field is reactive without
+  // opting the whole form out of the React Compiler's memoization.
+  const type = useWatch({ control, name: "type" });
+  const isService = type === "service";
+
   const handleImageChange = (file: File | null) => {
     setImageFile(file);
     setImagePreview(file ? URL.createObjectURL(file) : storageUrl(product?.image));
@@ -96,6 +108,7 @@ export function ProductForm({
     const payload: ProductPayload = {
       name: values.name,
       sku: values.sku,
+      type: values.type,
       barcode: values.barcode || null,
       category_id: values.category_id ? Number(values.category_id) : null,
       brand_id: values.brand_id ? Number(values.brand_id) : null,
@@ -112,7 +125,7 @@ export function ProductForm({
       await onSubmit(payload);
     } catch (err) {
       const formFields: (keyof FormValues)[] = [
-        "name", "sku", "barcode", "category_id", "brand_id",
+        "name", "sku", "type", "barcode", "category_id", "brand_id",
         "purchase_price", "sale_price", "tax_rate", "unit", "minimum_stock", "description",
       ];
       if (err instanceof ApiClientError && Object.keys(err.errors).length > 0) {
@@ -142,6 +155,23 @@ export function ProductForm({
               </Field>
               <Field label="SKU" required error={errors.sku?.message}>
                 <Input {...register("sku")} error={!!errors.sku} />
+              </Field>
+              <Field label="Type" required error={errors.type?.message} hint="Services are sellable but never affect stock">
+                <Controller
+                  control={control}
+                  name="type"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger aria-label="Type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="product">Product</SelectItem>
+                        <SelectItem value="service">Service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Barcode" error={errors.barcode?.message}>
                 <Input {...register("barcode")} error={!!errors.barcode} />
@@ -207,9 +237,14 @@ export function ProductForm({
               <Field label="Unit" error={errors.unit?.message} hint="e.g. pcs, kg, box">
                 <Input {...register("unit")} error={!!errors.unit} />
               </Field>
-              <Field label="Minimum stock" error={errors.minimum_stock?.message} hint="Triggers a low-stock alert">
-                <Input type="number" min="0" step="1" {...register("minimum_stock", { setValueAs: numeric })} error={!!errors.minimum_stock} />
-              </Field>
+              {/* Services never carry stock (see Product.isService() / SaleService), so a
+                  minimum-stock alert threshold has nothing to apply to — hidden rather
+                  than shown-but-ignored. */}
+              {!isService && (
+                <Field label="Minimum stock" error={errors.minimum_stock?.message} hint="Triggers a low-stock alert">
+                  <Input type="number" min="0" step="1" {...register("minimum_stock", { setValueAs: numeric })} error={!!errors.minimum_stock} />
+                </Field>
+              )}
             </div>
           </div>
         </div>

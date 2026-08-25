@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { CheckCircle2, Printer, Plus } from "lucide-react";
 import { Modal, ModalContent } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -44,12 +45,26 @@ export function SaleSuccess({
             </Button>
           </div>
         </div>
-
-        {/* Rendered off-screen (not display:none — that would never print either) so window.print() picks it up via #print-area. */}
-        <div className="print-only">
-          <Receipt data={receipt} currency={currency} />
-        </div>
       </ModalContent>
+
+      {/*
+       * Portaled directly to document.body — NOT rendered inside
+       * ModalContent's subtree. ModalContent (Radix Dialog) is
+       * `position:fixed` with a CSS transform and `overflow-y-auto`,
+       * which clips/repositions descendants independently of the
+       * .print-only/#print-area visibility trick (see globals.css) — a
+       * transform on an ancestor also redirects where any nested
+       * position:fixed element resolves itself. Portaling out from under
+       * that ancestor is what actually makes the print pick up the
+       * receipt content instead of a blank/mispositioned page.
+       */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="print-only">
+            <Receipt data={receipt} currency={currency} />
+          </div>,
+          document.body
+        )}
     </Modal>
   );
 }

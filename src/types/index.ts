@@ -104,6 +104,8 @@ export interface Brand {
   status: Status;
 }
 
+export type ProductType = "product" | "service";
+
 export interface Product {
   id: number;
   business_id: number;
@@ -112,6 +114,8 @@ export interface Product {
   name: string;
   sku: string;
   barcode: string | null;
+  /** "service" = sellable, non-inventory item (consulting, labor, delivery fee, ...) — see ProductController/SaleService. Defaults to "product" server-side. */
+  type: ProductType;
   purchase_price: string | number;
   sale_price: string | number;
   tax_rate: string | number | null;

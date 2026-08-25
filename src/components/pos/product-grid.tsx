@@ -1,6 +1,6 @@
 "use client";
 
-import { Package } from "lucide-react";
+import { Package, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { storageUrl } from "@/lib/api/client";
@@ -35,7 +35,11 @@ export function ProductGrid({
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       {products.map((product) => {
-        const outOfStock = product.stock !== undefined && product.stock !== null && product.stock <= 0;
+        const isService = product.type === "service";
+        // A service never has an inventory row, so product.stock is always
+        // null for one (Eloquent's withSum() with no matching rows) — never
+        // treated as "out of stock", matching "services are non-inventory".
+        const outOfStock = !isService && product.stock !== undefined && product.stock !== null && product.stock <= 0;
         return (
           <button
             key={product.id}
@@ -49,10 +53,17 @@ export function ProductGrid({
               outOfStock && "opacity-50 grayscale"
             )}
           >
-            <div className="flex aspect-[4/3] items-center justify-center bg-muted">
+            <div className="relative flex aspect-[4/3] items-center justify-center bg-muted">
+              {isService && (
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold text-info">
+                  Service
+                </span>
+              )}
               {product.image ? (
                 // eslint-disable-next-line @next/next/no-img-element -- backend-hosted product photo in a dense grid, not a static asset
                 <img src={storageUrl(product.image)} alt="" className="size-full object-cover" />
+              ) : isService ? (
+                <Wrench className="size-8 text-muted-foreground" />
               ) : (
                 <Package className="size-8 text-muted-foreground" />
               )}
@@ -62,7 +73,7 @@ export function ProductGrid({
               <p className="text-xs text-muted-foreground">{product.sku}</p>
               <div className="mt-auto flex items-center justify-between pt-1">
                 <span className="text-sm font-semibold text-brand">{formatCurrency(product.sale_price, currency)}</span>
-                {product.stock !== undefined && product.stock !== null && (
+                {!isService && product.stock !== undefined && product.stock !== null && (
                   <span className={cn("text-xs", outOfStock ? "text-error" : "text-muted-foreground")}>
                     {outOfStock ? "Out of stock" : `${product.stock} left`}
                   </span>

@@ -216,6 +216,40 @@
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  /*
+   * Tailwind's own Preflight reset stopped setting `cursor: pointer` on
+   * buttons a while back (v3.4+, carried into v4) — the actual browser
+   * default for a plain <button> has always been `cursor: default`, same
+   * as any other element; only <a href> gets a pointer cursor natively.
+   * Without this, every Button/IconButton/Tab/Select/etc. in the app
+   * (none of which set cursor-pointer individually) shows the plain arrow
+   * cursor on hover instead of signalling "this is clickable". Restored
+   * here, once, scoped to genuinely interactive roles/elements only —
+   * never applied blindly to every element.
+   */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="option"],
+  [role="switch"]:not([aria-disabled="true"]),
+  [role="checkbox"]:not([aria-disabled="true"]),
+  a[href],
+  select,
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  [aria-disabled="true"],
+  select:disabled {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {
@@ -312,6 +346,22 @@
 @media print {
   body * {
     visibility: hidden;
+  }
+
+  /*
+   * #print-area's position:absolute;inset:0 below resolves against its
+   * NEAREST POSITIONED ANCESTOR — which is .print-only itself
+   * (position:fixed). Without this reset, .print-only's own
+   * `left: -9999px` (needed to keep it off-screen during normal viewing)
+   * is never undone for print, so the "visible" receipt still renders
+   * inside a box parented 9999px off the page — printing a blank page.
+   * This was the root cause of receipts not printing (POS success screen
+   * and Sales History both use this same .print-only/#print-area pair).
+   */
+  .print-only {
+    position: static;
+    left: auto;
+    top: auto;
   }
 
   #print-area,

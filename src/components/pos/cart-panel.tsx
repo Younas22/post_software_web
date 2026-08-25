@@ -108,7 +108,12 @@ function CartLineRow({
   return (
     <li className="flex items-start gap-3 p-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{line.product.name}</p>
+        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <span className="truncate">{line.product.name}</span>
+          {line.product.type === "service" && (
+            <span className="shrink-0 rounded-full bg-info-soft px-1.5 py-0.5 text-[10px] font-semibold leading-none text-info">Service</span>
+          )}
+        </p>
         <p className="text-xs text-muted-foreground">
           {formatCurrency(line.product.sale_price, currency)}
           {line.discount > 0 && <span className="text-error"> · −{formatCurrency(line.discount, currency)}</span>}
