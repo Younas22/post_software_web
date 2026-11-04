@@ -133,6 +133,8 @@ export interface SubscriptionPackage {
   name: string;
   slug: string;
   price: string | number;
+  /** ISO code package prices are charged in (platform default currency). */
+  currency?: string;
   billing_cycle: "monthly" | "yearly";
   max_businesses: number | null;
   max_branches: number | null;
@@ -555,4 +557,18 @@ export interface InstallmentSummary {
   collected_this_month: string;
   upcoming: InstallmentDueRow[];
   overdue: InstallmentDueRow[];
+}
+
+/** GET /public/platform — the POS company's own profile & support contacts (Super Admin → System Settings). */
+export interface PlatformInfo {
+  name: string;
+  logo_url: string | null;
+  favicon_url: string | null;
+  office_address: string | null;
+  support_email: string | null;
+  support_phone: string | null;
+  support_whatsapp: string | null;
+  live_chat_url: string | null;
+  support_hours: string | null;
+  website: string | null;
 }

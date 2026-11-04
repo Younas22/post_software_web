@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChevronsLeft, ChevronsRight, Plus } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LifeBuoy, Plus } from "lucide-react";
 import { useVisibleNav } from "@/hooks/use-visible-nav";
 import { useBranding } from "@/hooks/use-branding";
 import { useAuth } from "@/lib/auth/auth-context";
-import { Avatar } from "@/components/ui/avatar";
+import { usePlatformInfo } from "@/hooks/use-platform";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ResolvedNavGroup } from "@/config/navigation";
 import { cn } from "@/lib/utils";
@@ -182,37 +182,92 @@ export function SidebarNav({
 }
 
 function SidebarFooter({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { user } = useAuth();
-  const role = user?.is_super_admin ? "Super Admin" : user?.roles[0]?.replace(/-/g, " ");
-
   return (
-    <div className="shrink-0 border-t border-sidebar-border p-3">
-      {user && !collapsed && (
-        <Link
-          href="/settings/profile"
-          className="mb-2 flex items-center gap-3 rounded-xl bg-sidebar-card p-2.5 transition-colors hover:bg-sidebar-hover"
-        >
-          <Avatar name={user.name} src={user.avatar_url} size="md" />
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">{user.name}</p>
-            {role && <p className="truncate text-xs capitalize text-sidebar-muted">{role}</p>}
-          </div>
-        </Link>
-      )}
+    <div className={cn("shrink-0 border-t border-sidebar-border p-3", collapsed && "flex flex-col items-center gap-2")}>
+      <SupportCard collapsed={collapsed} />
       <button
         type="button"
         onClick={onToggle}
         className={cn(
-          "flex h-10 items-center gap-2 rounded-xl text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground",
+          "flex items-center gap-2 rounded-lg text-xs font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          collapsed ? "mx-auto w-12 justify-center" : "w-full px-3.5"
+          collapsed ? "size-10 justify-center" : "mt-2 h-8 w-full justify-center"
         )}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         aria-expanded={!collapsed}
       >
-        {collapsed ? <ChevronsRight className="size-5" /> : <ChevronsLeft className="size-5" />}
-        {!collapsed && "Collapse"}
+        {collapsed ? <ChevronsRight className="size-[18px]" /> : <ChevronsLeft className="size-4" />}
+        {!collapsed && "Collapse sidebar"}
       </button>
     </div>
+  );
+}
+
+/**
+ * Pinned at the very bottom of the sidebar: Help & Support, carrying the
+ * POS company's own logo and name (Super Admin → System Settings), so
+ * clients always know who to reach.
+ */
+function SupportCard({ collapsed }: { collapsed: boolean }) {
+  const pathname = usePathname();
+  const platform = usePlatformInfo().data;
+  const active = pathname === "/support";
+  const company = platform?.name || "Support";
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logo = platform?.logo_url && !logoFailed ? platform.logo_url : null;
+
+  const mark = (
+    <span
+      className={cn(
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-black/5",
+        collapsed ? "size-10" : "size-10"
+      )}
+    >
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- company logo uploaded by the Super Admin
+        <img src={logo} alt="" className="size-full object-contain p-1" onError={() => setLogoFailed(true)} />
+      ) : (
+        <LifeBuoy className="size-5 text-brand" aria-hidden />
+      )}
+      <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-success" aria-hidden />
+    </span>
+  );
+
+  const card = (
+    <Link
+      href="/support"
+      aria-current={active ? "page" : undefined}
+      aria-label={collapsed ? `Help & Support — ${company}` : undefined}
+      className={cn(
+        "group flex items-center gap-3 rounded-2xl transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        collapsed ? "justify-center p-1" : "w-full border p-2.5 pr-3",
+        !collapsed &&
+          (active
+            ? "border-transparent bg-sidebar-active text-sidebar-active-foreground"
+            : "border-sidebar-border bg-sidebar-card text-sidebar-foreground hover:bg-sidebar-hover"),
+        collapsed && active && "bg-sidebar-active"
+      )}
+    >
+      {mark}
+      {!collapsed && (
+        <>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block text-sm font-semibold">Help &amp; Support</span>
+            <span className={cn("block truncate text-xs", active ? "opacity-80" : "text-sidebar-muted")}>{company}</span>
+          </span>
+          <LifeBuoy className={cn("size-[18px] shrink-0 transition-transform group-hover:rotate-45", active ? "opacity-90" : "text-sidebar-muted")} aria-hidden />
+        </>
+      )}
+    </Link>
+  );
+
+  return collapsed ? (
+    <Tooltip>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent side="right">Help &amp; Support</TooltipContent>
+    </Tooltip>
+  ) : (
+    card
   );
 }

@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, Eye, EyeOff, Lock, Mail, Zap } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Lock, Mail, MapPin, Phone, Zap } from "lucide-react";
+import { usePlatformInfo } from "@/hooks/use-platform";
+import type { PlatformInfo } from "@/types";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiClientError } from "@/lib/api/client";
 import { applyBrandTheme, DEFAULT_THEME, rememberLoginSlug } from "@/lib/branding";
@@ -38,7 +40,11 @@ export function BrandedLogin({ branding, isLoading = false }: { branding?: Busin
   const [showPassword, setShowPassword] = useState(false);
 
   const theme = { ...DEFAULT_THEME, ...(branding?.theme ?? {}) };
-  const productName = branding ? `${branding.name} POS` : "Universal POS";
+  // The POS company itself (Super Admin → System Settings): its name, office
+  // and support contacts replace the hard-coded "Universal POS" everywhere.
+  const platform = usePlatformInfo().data;
+  const companyName = platform?.name || "Universal POS";
+  const productName = branding ? `${branding.name} POS` : companyName;
 
   useEffect(() => {
     if (isLoading) return;
@@ -132,7 +138,10 @@ export function BrandedLogin({ branding, isLoading = false }: { branding?: Busin
           )}
         </div>
 
-        <p className="relative text-sm text-white/60">Powered by Universal POS</p>
+        <div className="relative">
+          <CompanyContact platform={platform} tone="onBrand" />
+          <p className="mt-4 text-sm text-white/60">Powered by {companyName}</p>
+        </div>
       </section>
 
       {/* ───────── Form panel ───────── */}
@@ -214,10 +223,55 @@ export function BrandedLogin({ branding, isLoading = false }: { branding?: Busin
               </Button>
             </form>
 
-            <p className="mt-10 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} {productName} · Secure sign-in</p>
+            <div className="mt-10 border-t border-border pt-6 lg:hidden">
+              <CompanyContact platform={platform} tone="muted" />
+            </div>
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              © {new Date().getFullYear()} {companyName} · Secure sign-in
+            </p>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** The POS company's office address, phone and email — whichever the Super Admin has filled in. */
+function CompanyContact({ platform, tone }: { platform: PlatformInfo | undefined; tone: "onBrand" | "muted" }) {
+  if (!platform) return null;
+  const rows = [
+    platform.office_address && { icon: MapPin, text: platform.office_address, href: `https://maps.google.com/?q=${encodeURIComponent(platform.office_address)}` },
+    platform.support_phone && { icon: Phone, text: platform.support_phone, href: `tel:${platform.support_phone.replace(/[^\d+]/g, "")}` },
+    platform.support_email && { icon: Mail, text: platform.support_email, href: `mailto:${platform.support_email}` },
+  ].filter(Boolean) as { icon: typeof MapPin; text: string; href: string }[];
+
+  if (rows.length === 0) return null;
+  const onBrand = tone === "onBrand";
+
+  return (
+    <div className={onBrand ? "max-w-md rounded-2xl bg-black/15 p-4 ring-1 ring-white/15 backdrop-blur-sm" : "space-y-1"}>
+      <p className={onBrand ? "mb-2 text-xs font-semibold uppercase tracking-wider text-white/70" : "mb-1 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground"}>
+        Need help? Contact {platform.name}
+      </p>
+      <ul className={onBrand ? "space-y-1.5" : "flex flex-col items-center gap-1"}>
+        {rows.map(({ icon: Icon, text, href }) => (
+          <li key={text}>
+            <a
+              href={href}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+              className={
+                onBrand
+                  ? "flex items-start gap-2.5 text-sm text-white/90 hover:text-white hover:underline"
+                  : "flex items-start gap-2 text-xs text-muted-foreground hover:text-foreground"
+              }
+            >
+              <Icon className={onBrand ? "mt-0.5 size-4 shrink-0 text-white/70" : "mt-0.5 size-3.5 shrink-0"} aria-hidden />
+              <span className="break-words">{text}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

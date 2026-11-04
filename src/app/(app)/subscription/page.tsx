@@ -31,7 +31,7 @@ export default function SubscriptionPage() {
           <div>
             <CardTitle className="text-xl">{pkg.name}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              {formatCurrency(pkg.price, "USD")} / {pkg.billing_cycle}
+              {formatCurrency(pkg.price, pkg.currency ?? "USD")} / {pkg.billing_cycle}
             </p>
           </div>
           <StatusBadge status={subscription.effective_status} />
