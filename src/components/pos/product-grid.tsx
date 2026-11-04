@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Wrench } from "lucide-react";
+import { ConciergeBell, Package } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { storageUrl } from "@/lib/api/client";
@@ -63,7 +63,7 @@ export function ProductGrid({
                 // eslint-disable-next-line @next/next/no-img-element -- backend-hosted product photo in a dense grid, not a static asset
                 <img src={storageUrl(product.image)} alt="" className="size-full object-cover" />
               ) : isService ? (
-                <Wrench className="size-8 text-muted-foreground" />
+                <ConciergeBell className="size-8 text-muted-foreground" />
               ) : (
                 <Package className="size-8 text-muted-foreground" />
               )}
