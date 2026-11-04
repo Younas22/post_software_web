@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Zap } from "lucide-react";
+import { Menu } from "lucide-react";
+import { BusinessBrand } from "./business-brand";
 import { useState } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody } from "@/components/ui/drawer";
 import { IconButton } from "@/components/ui/icon-button";
@@ -26,11 +27,8 @@ export function MobileNav() {
       </IconButton>
       <DrawerContent side="left" size="sm">
         <DrawerHeader>
-          <DrawerTitle className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-brand text-brand-foreground">
-              <Zap className="size-3.5" fill="currentColor" />
-            </div>
-            POS
+          <DrawerTitle>
+            <BusinessBrand size="sm" />
           </DrawerTitle>
         </DrawerHeader>
         <DrawerBody className="space-y-5">

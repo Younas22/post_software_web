@@ -1,5 +1,5 @@
 import { apiGet, apiPut } from "@/lib/api/client";
-import type { Business } from "@/types";
+import type { Business, LocaleOptions } from "@/types";
 
 export interface UpdateBusinessPayload {
   name: string;
@@ -13,6 +13,7 @@ export interface UpdateBusinessPayload {
 
 export const businessService = {
   get: () => apiGet<Business>("/business"),
+  localeOptions: () => apiGet<LocaleOptions>("/business/locale-options"),
   update: (payload: UpdateBusinessPayload) => {
     if (payload.logo) {
       const form = new FormData();

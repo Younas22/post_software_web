@@ -32,12 +32,36 @@ export function formatNumber(value: number | string, locale = "en-US") {
   return new Intl.NumberFormat(locale).format(num);
 }
 
+/**
+ * The business's own timezone (from the session config) — every date/time
+ * on screen is shown in it rather than the browser's, so a branch and its
+ * owner abroad see the same clock. Set by AuthProvider on session load.
+ */
+let displayTimeZone: string | undefined;
+
+export function setDisplayTimeZone(timeZone: string | null | undefined) {
+  if (!timeZone) {
+    displayTimeZone = undefined;
+    return;
+  }
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+    displayTimeZone = timeZone;
+  } catch {
+    displayTimeZone = undefined;
+  }
+}
+
 /** Format a date string/Date into a readable, locale-aware date. */
 export function formatDate(value: string | Date | null | undefined, opts?: Intl.DateTimeFormatOptions) {
   if (!value) return "-";
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", opts ?? { year: "numeric", month: "short", day: "numeric" }).format(date);
+  // A bare calendar date ("2026-11-03") is not an instant — JS parses it as
+  // UTC midnight, so render it in UTC to keep the same day everywhere.
+  const dateOnly = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const timeZone = dateOnly ? "UTC" : displayTimeZone;
+  return new Intl.DateTimeFormat("en-US", { ...(opts ?? { year: "numeric", month: "short", day: "numeric" }), timeZone }).format(date);
 }
 
 /** Format a date/time string into a readable date + time. */

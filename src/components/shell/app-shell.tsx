@@ -5,10 +5,12 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { BottomNav } from "./bottom-nav";
 import { SubscriptionBanner } from "./subscription-banner";
+import { BusinessDocumentBranding } from "./business-brand";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
+      <BusinessDocumentBranding />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />

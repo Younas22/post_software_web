@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useBusiness, useBusinessMutations } from "@/hooks/use-business";
+import { useBusiness, useBusinessMutations, useLocaleOptions } from "@/hooks/use-business";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,9 @@ export default function SettingsPage() {
 
 function BusinessTab({ readOnly }: { readOnly: boolean }) {
   const { data: business, isLoading } = useBusiness();
+  const { data: locale } = useLocaleOptions();
   const { update } = useBusinessMutations();
+  const { refresh } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", currency: "", timezone: "" });
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -85,6 +88,10 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
     setError(null);
     try {
       await update.mutateAsync({ ...form, logo: logoFile });
+      setLogoFile(null);
+      // Currency, timezone, name and logo live in the session config that
+      // the whole app (sidebar brand, money/date formatting) reads from.
+      await refresh();
       toast({ title: "Business updated", variant: "success" });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
@@ -96,7 +103,7 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
       <CardContent className="space-y-4 pt-6">
         {error && <Alert variant="error">{error}</Alert>}
         <div className="flex items-center gap-4">
-          <Avatar name={form.name} src={logoFile ? URL.createObjectURL(logoFile) : storageUrl(business?.logo)} size="lg" />
+          <Avatar name={form.name} src={logoFile ? URL.createObjectURL(logoFile) : (business?.logo_url ?? storageUrl(business?.logo))} size="lg" />
           <div>
             <input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} disabled={readOnly} />
             <Button variant="outline" size="sm" type="button" disabled={readOnly} onClick={() => document.getElementById("logo-upload")?.click()}>
@@ -117,11 +124,33 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
           <Field label="Address" className="sm:col-span-2">
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} disabled={readOnly} />
           </Field>
-          <Field label="Currency" required hint="3-letter code, e.g. USD">
-            <Input value={form.currency} maxLength={3} onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })} disabled={readOnly} />
+          <Field label="Currency" required hint="Used for prices, totals and receipts">
+            <Select value={form.currency} onValueChange={(currency) => setForm({ ...form, currency })} disabled={readOnly || !locale}>
+              <SelectTrigger aria-label="Currency">
+                <SelectValue placeholder={locale ? "Select currency" : "Loading…"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(locale?.currencies ?? []).map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
-          <Field label="Timezone" required hint="e.g. UTC, Asia/Karachi">
-            <Input value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} disabled={readOnly} />
+          <Field label="Timezone" required hint="Dates & times are shown in this timezone">
+            <Select value={form.timezone} onValueChange={(timezone) => setForm({ ...form, timezone })} disabled={readOnly || !locale}>
+              <SelectTrigger aria-label="Timezone">
+                <SelectValue placeholder={locale ? "Select timezone" : "Loading…"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(locale?.timezones ?? []).map((tz) => (
+                  <SelectItem key={tz.id} value={tz.id}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
         {!readOnly && (

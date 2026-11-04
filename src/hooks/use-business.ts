@@ -8,6 +8,15 @@ export function useBusiness() {
   });
 }
 
+/** Currencies/timezones this business may choose from (enabled by the Super Admin). */
+export function useLocaleOptions() {
+  return useQuery({
+    queryKey: ["business", "locale-options"],
+    queryFn: () => businessService.localeOptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useBusinessMutations() {
   const queryClient = useQueryClient();
   const invalidate = () => {

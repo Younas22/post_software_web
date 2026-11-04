@@ -29,10 +29,33 @@ export interface Business {
   email: string | null;
   address: string | null;
   logo: string | null;
+  /** Absolute URL of `logo` (null when no logo is uploaded). */
+  logo_url?: string | null;
   currency: string;
   timezone: string;
   status?: Status;
   business_type?: { id: number; name: string } | null;
+}
+
+/** GET /business/locale-options — the currencies/timezones the Super Admin has enabled. */
+export interface CurrencyOption {
+  code: string;
+  name: string;
+  symbol: string;
+  label: string;
+}
+
+export interface TimezoneOption {
+  id: string;
+  offset: string;
+  label: string;
+}
+
+export interface LocaleOptions {
+  currencies: CurrencyOption[];
+  timezones: TimezoneOption[];
+  default_currency: string;
+  default_timezone: string;
 }
 
 export interface Branch {
@@ -47,7 +70,7 @@ export interface Branch {
 }
 
 export interface ConfigBootstrap {
-  business: { id: number; name: string; currency: string; timezone: string } | null;
+  business: { id: number; name: string; currency: string; timezone: string; logo_url?: string | null } | null;
   /** The caller's own branch, resolved permission-free — null for an actor with no fixed branch_id (or no business). */
   branch: { id: number; name: string; is_main: boolean } | null;
   settings: Record<string, unknown>;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useVisibleNav } from "@/hooks/use-visible-nav";
 import { cn } from "@/lib/utils";
-import { Zap } from "lucide-react";
+import { BusinessBrand } from "./business-brand";
 
 export function Sidebar() {
   const groups = useVisibleNav();
@@ -12,12 +12,9 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-      <div className="flex h-16 items-center gap-2 px-5">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-foreground">
-          <Zap className="size-4.5" fill="currentColor" aria-hidden />
-        </div>
-        <span className="text-base font-semibold text-sidebar-foreground">POS</span>
-      </div>
+      <Link href="/dashboard" className="flex h-16 items-center px-5" aria-label="Go to dashboard">
+        <BusinessBrand />
+      </Link>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4" aria-label="Primary">
         {groups.map((group, i) => (

@@ -13,6 +13,7 @@ import { authService } from "@/services/auth.service";
 import { configService } from "@/services/config.service";
 import { subscriptionService } from "@/services/subscription.service";
 import { getToken, registerUnauthorizedHandler, setToken } from "@/lib/api/client";
+import { setDisplayTimeZone } from "@/lib/utils";
 import type { AuthUser, ConfigBootstrap, SubscriptionInfo } from "@/types";
 
 interface AuthState {
@@ -44,6 +45,10 @@ const initialState: AuthState = {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState);
+
+  // Applied during render (not in an effect) so the very first paint after
+  // the config arrives already formats dates in the business's timezone.
+  setDisplayTimeZone(state.config?.business?.timezone);
 
   const loadSession = useCallback(async () => {
     const token = getToken();

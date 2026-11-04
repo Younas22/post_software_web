@@ -6,6 +6,7 @@ import { MobileNav } from "./mobile-nav";
 import { BranchSwitcher } from "./branch-switcher";
 import { NotificationsBell } from "./notifications-bell";
 import { ProfileMenu } from "./profile-menu";
+import { BusinessBrand } from "./business-brand";
 
 function OnlineStatus() {
   const [online, setOnline] = useState(true);
@@ -42,6 +43,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
       <MobileNav />
+      <BusinessBrand size="sm" showName={false} className="lg:hidden" />
       <BranchSwitcher />
       <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
         <OnlineStatus />
