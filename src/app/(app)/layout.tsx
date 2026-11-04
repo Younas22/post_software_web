@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
+import { loginPath } from "@/lib/branding";
 import { AppShell } from "@/components/shell/app-shell";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -12,7 +13,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
+      router.replace(loginPath());
     }
   }, [isLoading, isAuthenticated, router]);
 

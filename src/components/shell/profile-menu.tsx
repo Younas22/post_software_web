@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { loginPath } from "@/lib/branding";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
@@ -51,7 +52,7 @@ export function ProfileMenu() {
         <DropdownItem
           destructive
           onSelect={() => {
-            logout().then(() => router.replace("/login"));
+            logout().then(() => router.replace(loginPath()));
           }}
           className="flex items-center gap-2"
         >

@@ -14,6 +14,7 @@ import { configService } from "@/services/config.service";
 import { subscriptionService } from "@/services/subscription.service";
 import { getToken, registerUnauthorizedHandler, setToken } from "@/lib/api/client";
 import { setDisplayTimeZone } from "@/lib/utils";
+import { loginPath } from "@/lib/branding";
 import type { AuthUser, ConfigBootstrap, SubscriptionInfo } from "@/types";
 
 interface AuthState {
@@ -79,7 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // in-memory store/query-cache after an auth failure rather than
         // risk stale tenant data surviving into the next session.
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign("/login");
+        // Back to this business type's own branded login page, if known.
+        window.location.assign(loginPath());
       }
     });
     // Bootstraps the session once on mount from a persisted token, if any.

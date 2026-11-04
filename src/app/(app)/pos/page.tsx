@@ -144,7 +144,7 @@ export default function PosPage() {
   const total = cartTotal(lines);
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col lg:-m-6 lg:flex-row">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col lg:-m-8 lg:flex-row">
       <aside className="hidden shrink-0 border-r border-border lg:block lg:w-40">
         <CategoryRail activeCategoryId={categoryId} onSelect={(id) => { setCategoryId(id); setPage(1); }} />
       </aside>

@@ -12,15 +12,20 @@
  */
 
 :root {
-  /* Brand */
-  --color-brand: #00bf63;
-  --color-brand-hover: #00a856;
-  --color-brand-active: #009149;
-  --color-brand-foreground: #ffffff;
-  --color-brand-soft: #e6f9ef;
+  /*
+   * Brand — #00bf63 is the platform default. A business type's own colour
+   * (Admin → Business Types) is painted at runtime as --brand/--brand-*
+   * on <html> by lib/branding.ts, and every token below follows it.
+   */
+  --color-brand: var(--brand, #00bf63);
+  --color-brand-hover: var(--brand-hover, #00a856);
+  --color-brand-active: var(--brand-active, #009149);
+  --color-brand-foreground: var(--brand-fg, #ffffff);
+  --color-brand-soft: var(--brand-soft, #e6f9ef);
 
   /* Light theme semantic tokens */
   --background: #ffffff;
+  --canvas: #f5f6f8;
   --foreground: #171717;
   --card: #ffffff;
   --card-foreground: #171717;
@@ -31,10 +36,15 @@
   --border: #e5e5e5;
   --input: #e5e5e5;
   --input-background: #ffffff;
-  --ring: #00bf63;
-  --sidebar: #fafafa;
+  --ring: var(--brand, #00bf63);
+  --sidebar: #ffffff;
   --sidebar-foreground: #171717;
   --sidebar-border: #e5e5e5;
+  --sidebar-muted: #8a8a8a;
+  --sidebar-hover: rgb(0 0 0 / 0.045);
+  --sidebar-active: var(--color-brand);
+  --sidebar-active-foreground: var(--color-brand-foreground);
+  --sidebar-card: #f5f5f5;
 
   --success: #16a34a;
   --success-foreground: #ffffff;
@@ -74,6 +84,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --background: #0a0a0a;
+    --canvas: #0a0a0a;
     --foreground: #f5f5f5;
     --card: #171717;
     --card-foreground: #f5f5f5;
@@ -84,10 +95,13 @@
     --border: #333333;
     --input: #404040;
     --input-background: #171717;
-    --ring: #00bf63;
+    --ring: var(--brand, #00bf63);
     --sidebar: #111111;
     --sidebar-foreground: #f5f5f5;
     --sidebar-border: #2a2a2a;
+    --sidebar-muted: #8f8f8f;
+    --sidebar-hover: rgb(255 255 255 / 0.06);
+    --sidebar-card: rgb(255 255 255 / 0.05);
 
     --success: #22c55e;
     --success-soft: #052e16;
@@ -98,13 +112,14 @@
     --info: #3b82f6;
     --info-soft: #0b1d3a;
 
-    --color-brand-soft: #062b18;
+    --color-brand-soft: var(--brand-soft-dark, #062b18);
   }
 }
 
 /* Dark mode: explicit user choice (theme toggle) wins in both directions */
 :root[data-theme="dark"] {
   --background: #0a0a0a;
+  --canvas: #0a0a0a;
   --foreground: #f5f5f5;
   --card: #171717;
   --card-foreground: #f5f5f5;
@@ -115,10 +130,13 @@
   --border: #333333;
   --input: #404040;
   --input-background: #171717;
-  --ring: #00bf63;
+  --ring: var(--brand, #00bf63);
   --sidebar: #111111;
   --sidebar-foreground: #f5f5f5;
   --sidebar-border: #2a2a2a;
+  --sidebar-muted: #8f8f8f;
+  --sidebar-hover: rgb(255 255 255 / 0.06);
+  --sidebar-card: rgb(255 255 255 / 0.05);
 
   --success: #22c55e;
   --success-soft: #052e16;
@@ -129,11 +147,39 @@
   --info: #3b82f6;
   --info-soft: #0b1d3a;
 
-  --color-brand-soft: #062b18;
+  --color-brand-soft: var(--brand-soft-dark, #062b18);
+}
+
+/*
+ * Sidebar styles chosen per business type (data-sidebar on <html>, set by
+ * lib/branding.ts). "light" is the default token set above; these two
+ * override it in both colour schemes.
+ */
+:root[data-sidebar="dark"] {
+  --sidebar: #0f1115;
+  --sidebar-foreground: #e7e9ee;
+  --sidebar-border: #1d2027;
+  --sidebar-muted: #7d8391;
+  --sidebar-hover: rgb(255 255 255 / 0.06);
+  --sidebar-active: var(--color-brand);
+  --sidebar-active-foreground: var(--color-brand-foreground);
+  --sidebar-card: rgb(255 255 255 / 0.05);
+}
+
+:root[data-sidebar="brand"] {
+  --sidebar: var(--brand-deep, #006b37);
+  --sidebar-foreground: #ffffff;
+  --sidebar-border: transparent;
+  --sidebar-muted: rgb(255 255 255 / 0.62);
+  --sidebar-hover: rgb(255 255 255 / 0.1);
+  --sidebar-active: #ffffff;
+  --sidebar-active-foreground: var(--brand-deep, #006b37);
+  --sidebar-card: rgb(255 255 255 / 0.1);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-canvas: var(--canvas);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -147,6 +193,11 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-card: var(--sidebar-card);
 
   --color-brand: var(--color-brand);
   --color-brand-hover: var(--color-brand-hover);

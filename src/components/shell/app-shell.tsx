@@ -15,8 +15,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <SubscriptionBanner />
-        <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
-          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-canvas pb-20 lg:pb-0">
+          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</div>
         </main>
       </div>
       <BottomNav />

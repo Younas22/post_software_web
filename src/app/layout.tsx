@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { BRAND_PREPAINT_SCRIPT } from "@/lib/branding";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -11,8 +12,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "POS",
-    template: "%s · POS",
+    default: "Universal POS",
+    template: "%s · Universal POS",
   },
   description: "Universal POS — sell, manage inventory, and run your business from one app.",
   manifest: "/manifest.webmanifest",
@@ -36,6 +37,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
+      <head>
+        {/* Re-applies the business type's cached brand colour/sidebar style before first paint (see lib/branding.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: BRAND_PREPAINT_SCRIPT }} />
+      </head>
       {/*
         suppressHydrationWarning here (as on <html> above, for next-themes'
         data-theme attribute) only silences a mismatch on THIS element's own

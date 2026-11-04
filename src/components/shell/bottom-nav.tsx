@@ -4,23 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth/auth-context";
-import { PRIMARY_NAV_ITEMS } from "@/config/navigation";
 import { useVisibleNav } from "@/hooks/use-visible-nav";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
-/** Bottom tab bar for mobile: Home / POS / Products / More — spec's exact set, permission-filtered. */
+/** Bottom tab bar for mobile: up to four primary items (renamed per business type) + More. */
 export function BottomNav() {
   const pathname = usePathname();
-  const { hasPermission, hasFeature } = useAuth();
   const groups = useVisibleNav();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const primary = PRIMARY_NAV_ITEMS.filter(
-    (item) => (!item.permission || hasPermission(item.permission)) && (!item.feature || hasFeature(item.feature))
-  );
-  const moreItems = groups.flatMap((g) => g.items).filter((item) => !primary.includes(item));
+  // Already permission/feature/module-filtered and renamed for this business type.
+  const all = groups.flatMap((g) => g.items);
+  const primary = all.filter((item) => item.primary).slice(0, 4);
+  const moreItems = all.filter((item) => !primary.includes(item));
 
   return (
     <>
@@ -36,13 +33,13 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-medium",
+                "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-medium",
                 active ? "text-brand" : "text-muted-foreground"
               )}
               aria-current={active ? "page" : undefined}
             >
               <Icon className="size-5" aria-hidden />
-              {item.label}
+              <span className="max-w-full truncate px-1">{item.label}</span>
             </Link>
           );
         })}
