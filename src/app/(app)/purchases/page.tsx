@@ -13,8 +13,10 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Purchase } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function PurchasesPage() {
+  const terms = useTerms();
   const { hasPermission, config } = useAuth();
   const router = useRouter();
   const { branches, isPinned } = useActiveBranch();
@@ -37,7 +39,7 @@ export default function PurchasesPage() {
         </Link>
       ),
     },
-    { key: "supplier", header: "Supplier", render: (p) => p.supplier?.name ?? "—" },
+    { key: "supplier", header: terms.supplier, render: (p) => p.supplier?.name ?? "—" },
     { key: "branch", header: "Branch", render: (p) => p.branch?.name ?? "—" },
     { key: "total", header: "Total", render: (p) => formatCurrency(p.total, currency) },
     { key: "status", header: "Status", render: (p) => <StatusBadge status={p.status} /> },
@@ -48,8 +50,8 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Purchases</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Track stock coming in from your suppliers.</p>
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{terms.purchases}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Track stock coming in from your {terms.suppliers.toLowerCase()}.</p>
         </div>
         {canCreate && (
           <Button asChild>
@@ -91,8 +93,8 @@ export default function PurchasesPage() {
         onPageChange={setPage}
         onRowClick={(p) => router.push(`/purchases/${p.id}`)}
         emptyIcon={ShoppingBag}
-        emptyTitle="No purchases yet"
-        emptyDescription="Record a purchase to start tracking incoming stock."
+        emptyTitle={`No ${terms.purchases.toLowerCase()} yet`}
+        emptyDescription={`Record a ${terms.purchase.toLowerCase()} to start tracking incoming stock.`}
         emptyAction={
           canCreate ? (
             <Button asChild size="sm">

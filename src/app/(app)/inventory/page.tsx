@@ -20,8 +20,10 @@ import { StockAdjustmentModal } from "@/components/inventory/stock-adjustment-mo
 import { useProduct } from "@/hooks/use-products";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/utils";
 import type { Inventory, StockMovement } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function InventoryPage() {
+  const terms = useTerms();
   const { hasPermission, config } = useAuth();
   const { branch, branches, isPinned } = useActiveBranch();
   const searchParams = useSearchParams();
@@ -54,7 +56,7 @@ export default function InventoryPage() {
   }, [preselectedProduct]);
 
   const inventoryColumns: DataTableColumn<Inventory>[] = [
-    { key: "product", header: "Product", render: (r) => <span className="font-medium text-foreground">{r.product?.name}</span> },
+    { key: "product", header: terms.product, render: (r) => <span className="font-medium text-foreground">{r.product?.name}</span> },
     { key: "sku", header: "SKU", render: (r) => <span className="text-muted-foreground">{r.product?.sku}</span> },
     { key: "branch", header: "Branch", render: (r) => r.branch?.name },
     { key: "stock", header: "Stock", render: (r) => r.quantity },
@@ -72,7 +74,7 @@ export default function InventoryPage() {
   ];
 
   const movementColumns: DataTableColumn<StockMovement>[] = [
-    { key: "product", header: "Product", render: (m) => <span className="font-medium text-foreground">{m.product?.name}</span> },
+    { key: "product", header: terms.product, render: (m) => <span className="font-medium text-foreground">{m.product?.name}</span> },
     { key: "type", header: "Type", render: (m) => <span className="capitalize">{m.type.replace("_", " ")}</span> },
     {
       key: "quantity",
@@ -94,7 +96,7 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Inventory</h1>
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{terms.inventory}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Track stock levels and movements across your business.</p>
         </div>
         {hasPermission("inventory.adjust") && (
@@ -105,7 +107,7 @@ export default function InventoryPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total Products" value={formatNumber(productCount.data?.meta && "total" in productCount.data.meta ? productCount.data.meta.total : 0)} icon={Boxes} isLoading={productCount.isLoading} />
+        <StatCard label={`Total ${terms.products}`} value={formatNumber(productCount.data?.meta && "total" in productCount.data.meta ? productCount.data.meta.total : 0)} icon={Boxes} isLoading={productCount.isLoading} />
         <StatCard label="Stock Value" value={formatCurrency(report.data?.summary.stock_value ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={report.isLoading} />
         <StatCard
           label="Low Stock"
@@ -149,7 +151,7 @@ export default function InventoryPage() {
             onPageChange={setPage}
             emptyIcon={Boxes}
             emptyTitle="No inventory records yet"
-            emptyDescription="Stock levels appear once products are purchased or adjusted."
+            emptyDescription={`Stock levels appear once ${terms.products.toLowerCase()} are purchased or adjusted.`}
           />
         </TabsContent>
         <TabsContent value="movements">
@@ -161,7 +163,7 @@ export default function InventoryPage() {
             onPageChange={setMovementsPage}
             emptyIcon={Boxes}
             emptyTitle="No stock movements yet"
-            emptyDescription="Every purchase, sale, return, and adjustment will be logged here."
+            emptyDescription={`Every ${terms.purchase.toLowerCase()}, sale, return, and adjustment will be logged here.`}
           />
         </TabsContent>
       </Tabs>

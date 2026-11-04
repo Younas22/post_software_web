@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -16,14 +17,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // The (branded) login pages are full-bleed split screens with their own chrome.
+  if (pathname === "/login" || pathname.startsWith("/login/")) {
+    return <>{children}</>;
+  }
+
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-canvas">
       <header className="flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-lg bg-brand text-brand-foreground">
             <Zap className="size-4.5" fill="currentColor" aria-hidden />
           </div>
-          <span className="text-base font-semibold text-foreground">POS</span>
+          <span className="text-base font-semibold text-foreground">Universal POS</span>
         </div>
         <ThemeToggle />
       </header>

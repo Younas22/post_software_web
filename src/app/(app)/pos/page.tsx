@@ -22,6 +22,7 @@ import { salesService, type Receipt } from "@/services/sales.service";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Product, PaymentMethod, ProductType } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 const ITEM_TYPE_OPTIONS: { label: string; value: ProductType | undefined }[] = [
   { label: "All", value: undefined },
@@ -30,6 +31,7 @@ const ITEM_TYPE_OPTIONS: { label: string; value: ProductType | undefined }[] = [
 ];
 
 export default function PosPage() {
+  const terms = useTerms();
   const { config, hasFeature, hasPermission } = useAuth();
   const { toast } = useToast();
   const { branch, isLoading: branchLoading } = useActiveBranch();
@@ -86,7 +88,7 @@ export default function PosPage() {
       setCustomer(created);
       toast({ title: `Customer "${name}" created`, variant: "success" });
     } catch (err) {
-      toast({ title: "Couldn't create customer", description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
+      toast({ title: `Couldn't create ${terms.customer.toLowerCase()}`, description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
     }
   };
 
@@ -123,22 +125,22 @@ export default function PosPage() {
   };
 
   if (!hasPermission("sales.create")) {
-    return <EmptyState icon={ShoppingCart} title="POS access required" description="You don't have permission to create sales." className="py-24" />;
+    return <EmptyState icon={ShoppingCart} title={`${terms.pos} access required`} description={`You don't have permission to create ${terms.sales.toLowerCase()}.`} className="py-24" />;
   }
 
   if (!hasFeature("pos")) {
     return (
       <EmptyState
         icon={ShoppingCart}
-        title="POS is not enabled"
-        description="The POS feature isn't enabled for your business plan. Contact your administrator."
+        title={`${terms.pos} is not enabled`}
+        description={`The ${terms.pos} feature isn't enabled for your business plan. Contact your administrator.`}
         className="py-24"
       />
     );
   }
 
   if (!branchLoading && !branch) {
-    return <EmptyState icon={Building2} title="No branch available" description="You need an active branch to use POS." className="py-24" />;
+    return <EmptyState icon={Building2} title="No branch available" description={`You need an active branch to use ${terms.pos}.`} className="py-24" />;
   }
 
   const total = cartTotal(lines);
@@ -166,7 +168,7 @@ export default function PosPage() {
                 reuses the same segmented-pill pattern as DiscountPopover's
                 percent/fixed toggle rather than introducing a new control. */}
             <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-0.5">
-              {ITEM_TYPE_OPTIONS.map((opt) => (
+              {ITEM_TYPE_OPTIONS.map((opt) => ({ ...opt, label: opt.value === "product" ? terms.products : opt.label })).map((opt) => (
                 <button
                   key={opt.label}
                   type="button"

@@ -18,8 +18,10 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { ApiClientError } from "@/lib/api/client";
 import type { Supplier } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function SuppliersPage() {
+  const terms = useTerms();
   const { hasPermission } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -45,16 +47,16 @@ export default function SuppliersPage() {
     if (!ok) return;
     try {
       await mutations.remove.mutateAsync(supplier.id);
-      toast({ title: "Supplier deleted", variant: "success" });
+      toast({ title: `${terms.supplier} deleted`, variant: "success" });
     } catch (err) {
-      toast({ title: "Couldn't delete supplier", description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
+      toast({ title: `Couldn't delete ${terms.supplier.toLowerCase()}`, description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
     }
   };
 
   const columns: DataTableColumn<Supplier>[] = [
     {
       key: "name",
-      header: "Supplier",
+      header: terms.supplier,
       render: (s) => (
         <Link href={`/suppliers/${s.id}`} className="flex items-center gap-3 hover:text-brand">
           <Avatar name={s.name} size="sm" />
@@ -107,8 +109,8 @@ export default function SuppliersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Suppliers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage the vendors you purchase from.</p>
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{terms.suppliers}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage the vendors you {terms.purchase.toLowerCase()} from.</p>
         </div>
         {canCreate && (
           <Button asChild>
@@ -140,8 +142,8 @@ export default function SuppliersPage() {
         onPageChange={setPage}
         onRowClick={(s) => router.push(`/suppliers/${s.id}`)}
         emptyIcon={Truck}
-        emptyTitle={search || status ? "No suppliers match your filters" : "No suppliers yet"}
-        emptyDescription={search || status ? "Try adjusting your search or filters." : "Add your first supplier to get started."}
+        emptyTitle={search || status ? `No ${terms.suppliers.toLowerCase()} match your filters` : `No ${terms.suppliers.toLowerCase()} yet`}
+        emptyDescription={search || status ? "Try adjusting your search or filters." : `Add your first ${terms.supplier.toLowerCase()} to get started.`}
         emptyAction={
           canCreate && !search && !status ? (
             <Button asChild size="sm">

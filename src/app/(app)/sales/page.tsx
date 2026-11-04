@@ -13,8 +13,10 @@ import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import type { Sale } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function SalesHistoryPage() {
+  const terms = useTerms();
   const { config } = useAuth();
   const router = useRouter();
   const { branches, isPinned } = useActiveBranch();
@@ -41,7 +43,7 @@ export default function SalesHistoryPage() {
 
   const columns: DataTableColumn<Sale>[] = [
     { key: "invoice", header: "Invoice", render: (s) => <span className="font-medium text-foreground">{s.invoice_number}</span> },
-    { key: "customer", header: "Customer", render: (s) => s.customer?.name ?? "Walk-in" },
+    { key: "customer", header: terms.customer, render: (s) => s.customer?.name ?? "Walk-in" },
     { key: "cashier", header: "Cashier", render: (s) => s.user?.name ?? "—" },
     { key: "branch", header: "Branch", render: (s) => s.branch?.name ?? "—" },
     { key: "total", header: "Amount", render: (s) => formatCurrency(s.total, currency) },
@@ -52,7 +54,7 @@ export default function SalesHistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Sales History</h1>
+        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{terms.sales === `${terms.sales}` ? `${terms.sales} History` : terms.sales}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Every completed transaction across your business.</p>
       </div>
 
@@ -94,8 +96,8 @@ export default function SalesHistoryPage() {
         onPageChange={setPage}
         onRowClick={(s) => router.push(`/sales/${s.id}`)}
         emptyIcon={ReceiptText}
-        emptyTitle="No sales found"
-        emptyDescription={activeCount > 0 ? "Try adjusting your filters." : "Sales made through POS will appear here."}
+        emptyTitle={`No ${terms.sales.toLowerCase()} found`}
+        emptyDescription={activeCount > 0 ? "Try adjusting your filters." : `${terms.sales} made through ${terms.pos} will appear here.`}
       />
     </div>
   );

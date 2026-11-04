@@ -18,8 +18,10 @@ import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { ApiClientError } from "@/lib/api/client";
 import type { Customer } from "@/types";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function CustomersPage() {
+  const terms = useTerms();
   const { hasPermission } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -45,16 +47,16 @@ export default function CustomersPage() {
     if (!ok) return;
     try {
       await mutations.remove.mutateAsync(customer.id);
-      toast({ title: "Customer deleted", variant: "success" });
+      toast({ title: `${terms.customer} deleted`, variant: "success" });
     } catch (err) {
-      toast({ title: "Couldn't delete customer", description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
+      toast({ title: `Couldn't delete ${terms.customer.toLowerCase()}`, description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
     }
   };
 
   const columns: DataTableColumn<Customer>[] = [
     {
       key: "name",
-      header: "Customer",
+      header: terms.customer,
       render: (c) => (
         <Link href={`/customers/${c.id}`} className="flex items-center gap-3 hover:text-brand">
           <Avatar name={c.name} size="sm" />
@@ -107,8 +109,8 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Customers</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your customer relationships.</p>
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{terms.customers}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your {terms.customer.toLowerCase()} relationships.</p>
         </div>
         {canCreate && (
           <Button asChild>
@@ -140,8 +142,8 @@ export default function CustomersPage() {
         onPageChange={setPage}
         onRowClick={(c) => router.push(`/customers/${c.id}`)}
         emptyIcon={Users}
-        emptyTitle={search || status ? "No customers match your filters" : "No customers yet"}
-        emptyDescription={search || status ? "Try adjusting your search or filters." : "Add your first customer to get started."}
+        emptyTitle={search || status ? `No ${terms.customers.toLowerCase()} match your filters` : `No ${terms.customers.toLowerCase()} yet`}
+        emptyDescription={search || status ? "Try adjusting your search or filters." : `Add your first ${terms.customer.toLowerCase()} to get started.`}
         emptyAction={
           canCreate && !search && !status ? (
             <Button asChild size="sm">

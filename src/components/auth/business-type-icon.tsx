@@ -35,7 +35,7 @@ const ICONS: Record<string, LucideIcon> = {
   store: Store,
 };
 
-export function BusinessTypeIcon({ name, ...props }: { name?: string | null } & LucideProps) {
+export function BusinessTypeIcon({ name, ...props }: Omit<LucideProps, "name"> & { name?: string | null }) {
   const Icon = (name && ICONS[name]) || Store;
   return <Icon {...props} />;
 }

@@ -17,8 +17,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { inventoryService } from "@/services/inventory.service";
 import { storageUrl } from "@/lib/api/client";
 import { formatCurrency, formatDateTime, formatNumber } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function ProductViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const terms = useTerms();
   const { id } = use(params);
   const productId = Number(id);
   const { hasPermission, config } = useAuth();
@@ -32,7 +34,7 @@ export default function ProductViewPage({ params }: { params: Promise<{ id: stri
   const currency = config?.business?.currency ?? "USD";
 
   if (isLoading || !product) {
-    return <LoadingState label="Loading product…" />;
+    return <LoadingState label={`Loading ${terms.product.toLowerCase()}…`} />;
   }
 
   const margin = Number(product.sale_price) - Number(product.purchase_price);
@@ -42,7 +44,7 @@ export default function ProductViewPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Breadcrumb items={[{ label: "Products", href: "/products" }, { label: product.name }]} />
+          <Breadcrumb items={[{ label: terms.products, href: "/products" }, { label: product.name }]} />
           <div className="mt-2 flex items-center gap-3">
             <Avatar name={product.name} src={storageUrl(product.image)} size="lg" />
             <div>
@@ -90,7 +92,7 @@ export default function ProductViewPage({ params }: { params: Promise<{ id: stri
               {movements.isLoading ? (
                 <div className="p-5 text-sm text-muted-foreground">Loading…</div>
               ) : (movements.data?.data.length ?? 0) === 0 ? (
-                <EmptyState icon={Package} title="No stock movements yet" description="Purchases, sales, and adjustments will appear here." />
+                <EmptyState icon={Package} title="No stock movements yet" description={`${terms.purchases}, ${terms.sales.toLowerCase()}, and adjustments will appear here.`} />
               ) : (
                 <div className="overflow-x-auto px-1 pb-1">
                   <Table>
@@ -133,8 +135,8 @@ export default function ProductViewPage({ params }: { params: Promise<{ id: stri
               <CardTitle>Pricing</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Row label="Purchase price" value={formatCurrency(product.purchase_price, currency)} />
-              <Row label="Sale price" value={formatCurrency(product.sale_price, currency)} />
+              <Row label={`${terms.purchase} price`} value={formatCurrency(product.purchase_price, currency)} />
+              <Row label={`${terms.sale} price`} value={formatCurrency(product.sale_price, currency)} />
               <Row
                 label="Margin"
                 value={

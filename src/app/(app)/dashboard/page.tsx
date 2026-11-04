@@ -10,6 +10,10 @@ import {
   TrendingUp,
   Package,
   Building2,
+  Plus,
+  UserPlus,
+  PackagePlus,
+  CalendarClock,
 } from "lucide-react";
 import { ApiClientError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -18,6 +22,9 @@ import { useDashboard } from "@/hooks/use-dashboard";
 import { useSalesReport } from "@/hooks/use-reports";
 import { useLowStock } from "@/hooks/use-inventory";
 import { useDateRangePreset } from "@/hooks/use-date-range-preset";
+import { useBranding } from "@/hooks/use-branding";
+import { InstallmentsDashboardCard } from "@/components/installments/installments-dashboard-card";
+import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/shared/stat-card";
 import { RangePresetTabs } from "@/components/shared/range-preset-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +32,12 @@ import { StatusBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { user, config } = useAuth();
+  const { user, config, hasPermission, hasFeature } = useAuth();
+  const { terms, typeName, hasModule, isHidden } = useBranding();
+  const showStock = !isHidden("inventory");
   const { branchId } = useActiveBranch();
   const dashboard = useDashboard(branchId);
   const lowStock = useLowStock({ per_page: 5, branch_id: branchId ?? undefined }, !!branchId);
@@ -66,22 +75,44 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Welcome back, {user?.name?.split(" ")[0]}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening in your business today.</p>
-      </div>
+      <section className="relative overflow-hidden rounded-2xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
+        <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 size-72 rounded-full border-[36px] border-white/10" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-24 right-40 size-56 rounded-full bg-white/5" />
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="text-sm font-medium opacity-80">{formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" })}</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Welcome back, {user?.name?.split(" ")[0]}</h1>
+            <p className="mt-1 text-sm opacity-85">
+              {config?.business?.name}
+              {typeName ? ` · ${typeName}` : ""} — here&apos;s your business today.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {hasModule("installments") && hasPermission("installments.create") && (
+              <QuickLink href="/installments/new" icon={CalendarClock} label="New plan" primary />
+            )}
+            {hasPermission("sales.create") && hasFeature("pos") && (
+              <QuickLink href="/pos" icon={Plus} label={terms.pos} primary={!hasModule("installments")} />
+            )}
+            {hasPermission("customers.create") && <QuickLink href="/customers/new" icon={UserPlus} label={`Add ${terms.customer.toLowerCase()}`} />}
+            {hasPermission("products.create") && <QuickLink href="/products/new" icon={PackagePlus} label={`Add ${terms.product.toLowerCase()}`} />}
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Today's Sales" value={money(data?.today.sales_total ?? 0)} icon={DollarSign} tone="brand" isLoading={dashboard.isLoading} />
-        <StatCard label="Today's Orders" value={formatNumber(data?.today.orders_count ?? 0)} icon={ShoppingCart} isLoading={dashboard.isLoading} />
-        <StatCard
-          label="Low Stock"
-          value={formatNumber(data?.low_stock_count ?? 0)}
-          icon={AlertTriangle}
-          tone={data && data.low_stock_count > 0 ? "warning" : "default"}
-          isLoading={dashboard.isLoading}
-        />
-        <StatCard label="Customers" value={formatNumber(data?.customers_count ?? 0)} icon={Users} isLoading={dashboard.isLoading} />
+        <StatCard label="Today's Revenue" value={money(data?.today.sales_total ?? 0)} icon={DollarSign} tone="brand" isLoading={dashboard.isLoading} />
+        <StatCard label={`Today's ${terms.sales}`} value={formatNumber(data?.today.orders_count ?? 0)} icon={ShoppingCart} isLoading={dashboard.isLoading} />
+        {showStock && (
+          <StatCard
+            label="Low Stock"
+            value={formatNumber(data?.low_stock_count ?? 0)}
+            icon={AlertTriangle}
+            tone={data && data.low_stock_count > 0 ? "warning" : "default"}
+            isLoading={dashboard.isLoading}
+          />
+        )}
+        <StatCard label={terms.customers} value={formatNumber(data?.customers_count ?? 0)} icon={Users} isLoading={dashboard.isLoading} />
         <StatCard label="Today's Expenses" value={money(data?.today.expenses_total ?? 0)} icon={Receipt} isLoading={dashboard.isLoading} />
         <StatCard
           label="Est. Profit"
@@ -92,9 +123,11 @@ export default function DashboardPage() {
         />
       </div>
 
+      {hasModule("installments") && hasPermission("installments.view") && <InstallmentsDashboardCard branchId={branchId} currency={currency} />}
+
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-          <CardTitle>Sales overview</CardTitle>
+          <CardTitle>{terms.sales} overview</CardTitle>
           <RangePresetTabs value={preset} onChange={setPreset} customRange={customRange} onCustomRangeChange={setCustomRange} />
         </CardHeader>
         <CardContent>
@@ -106,7 +139,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-              <Metric label="Total Sales" value={money(salesReport.data?.summary.total ?? 0)} />
+              <Metric label={`Total ${terms.sales}`} value={money(salesReport.data?.summary.total ?? 0)} />
               <Metric label="Orders" value={formatNumber(salesReport.data?.summary.transaction_count ?? 0)} />
               <Metric
                 label="Avg Order"
@@ -127,7 +160,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent sales</CardTitle>
+            <CardTitle>Recent {terms.sales.toLowerCase()}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {dashboard.isLoading ? (
@@ -139,12 +172,12 @@ export default function DashboardPage() {
             ) : !hasAnySales ? (
               <EmptyState
                 icon={ShoppingCart}
-                title="No sales yet"
+                title={`No ${terms.sales.toLowerCase()} yet`}
                 description="Sales you make will show up here in real time."
                 action={
                   user?.permissions.includes("sales.create") ? (
                     <Link href="/pos" className="text-sm font-medium text-brand hover:underline">
-                      Go to POS →
+                      Go to {terms.pos} →
                     </Link>
                   ) : undefined
                 }
@@ -155,7 +188,7 @@ export default function DashboardPage() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead>Invoice</TableHead>
-                      <TableHead>Customer</TableHead>
+                      <TableHead>{terms.customer}</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -184,7 +217,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Top products (30 days)</CardTitle>
+            <CardTitle>Top {terms.products.toLowerCase()} (30 days)</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {dashboard.isLoading ? (
@@ -194,13 +227,13 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (data?.top_products.length ?? 0) === 0 ? (
-              <EmptyState icon={Package} title="No product sales yet" description="Your best sellers will appear here." />
+              <EmptyState icon={Package} title={`No ${terms.product.toLowerCase()} sales yet`} description="Your best sellers will appear here." />
             ) : (
               <div className="overflow-x-auto px-1 pb-1">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>Product</TableHead>
+                      <TableHead>{terms.product}</TableHead>
                       <TableHead>Units Sold</TableHead>
                       <TableHead>Revenue</TableHead>
                     </TableRow>
@@ -221,6 +254,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {showStock && (
       <Card>
         <CardHeader>
           <CardTitle>Low stock</CardTitle>
@@ -256,7 +290,26 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
+  );
+}
+
+function QuickLink({ href, icon: Icon, label, primary }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; primary?: boolean }) {
+  return (
+    <Button
+      asChild
+      size="lg"
+      className={
+        primary
+          ? "rounded-xl bg-white font-semibold text-[var(--brand-deep,#006b37)] shadow-sm hover:bg-white/90"
+          : "rounded-xl bg-white/15 font-semibold text-current ring-1 ring-white/25 hover:bg-white/25"
+      }
+    >
+      <Link href={href}>
+        <Icon className="size-4.5" /> {label}
+      </Link>
+    </Button>
   );
 }
 

@@ -14,8 +14,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { ReturnModal } from "@/components/sales/return-modal";
 import { Receipt } from "@/components/receipt/receipt";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const terms = useTerms();
   const { id } = use(params);
   const saleId = Number(id);
   const { hasPermission, config } = useAuth();
@@ -32,7 +34,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Breadcrumb items={[{ label: "Sales History", href: "/sales" }, { label: sale.invoice_number }]} />
+          <Breadcrumb items={[{ label: `${terms.sales} History`, href: "/sales" }, { label: sale.invoice_number }]} />
           <div className="mt-2 flex items-center gap-3">
             <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{sale.invoice_number}</h1>
             <StatusBadge status={sale.status} />
@@ -60,7 +62,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Product</TableHead>
+                    <TableHead>{terms.product}</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Discount</TableHead>
@@ -98,7 +100,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-center gap-2 text-foreground">
-                <UserIcon className="size-4 text-muted-foreground" /> {sale.customer?.name ?? "Walk-in Customer"}
+                <UserIcon className="size-4 text-muted-foreground" /> {sale.customer?.name ?? `Walk-in ${terms.customer}`}
               </div>
               <div className="flex items-center gap-2 text-foreground">
                 <Building2 className="size-4 text-muted-foreground" /> {sale.branch?.name ?? "—"} · Cashier: {sale.user?.name ?? "—"}

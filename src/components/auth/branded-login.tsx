@@ -165,7 +165,7 @@ export function BrandedLogin({ branding, isLoading = false }: { branding?: Busin
               {serverError && <Alert variant="error">{serverError}</Alert>}
 
               <Field label="Email" htmlFor="email" error={errors.email?.message}>
-                <div className="relative">
+                <div id="email-field" className="relative">
                   <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <Input
                     id="email"
@@ -181,7 +181,7 @@ export function BrandedLogin({ branding, isLoading = false }: { branding?: Busin
               </Field>
 
               <Field label="Password" htmlFor="password" error={errors.password?.message}>
-                <div className="relative">
+                <div id="password-field" className="relative">
                   <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <Input
                     id="password"

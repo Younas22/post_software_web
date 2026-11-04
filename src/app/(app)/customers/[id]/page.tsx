@@ -18,8 +18,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { salesService } from "@/services/sales.service";
 import { reportsService } from "@/services/reports.service";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function CustomerViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const terms = useTerms();
   const { id } = use(params);
   const customerId = Number(id);
   const { hasPermission, config } = useAuth();
@@ -37,7 +39,7 @@ export default function CustomerViewPage({ params }: { params: Promise<{ id: str
     enabled: !!customerId,
   });
 
-  if (isLoading || !customer) return <LoadingState label="Loading customer…" />;
+  if (isLoading || !customer) return <LoadingState label={`Loading ${terms.customer.toLowerCase()}…`} />;
 
   const row = summary.data?.customers.data[0];
 
@@ -45,7 +47,7 @@ export default function CustomerViewPage({ params }: { params: Promise<{ id: str
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Breadcrumb items={[{ label: "Customers", href: "/customers" }, { label: customer.name }]} />
+          <Breadcrumb items={[{ label: terms.customers, href: "/customers" }, { label: customer.name }]} />
           <div className="mt-2 flex items-center gap-3">
             <Avatar name={customer.name} size="lg" />
             <div>
@@ -64,7 +66,7 @@ export default function CustomerViewPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-2">
-        <StatCard label="Total Sales" value={formatCurrency(row?.total_spent ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={summary.isLoading} />
+        <StatCard label={`Total ${terms.sales}`} value={formatCurrency(row?.total_spent ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={summary.isLoading} />
         <StatCard label="Orders" value={formatNumber(row?.transaction_count ?? 0)} icon={ShoppingCart} isLoading={summary.isLoading} />
       </div>
 
@@ -77,7 +79,7 @@ export default function CustomerViewPage({ params }: { params: Promise<{ id: str
             {recentSales.isLoading ? (
               <div className="p-5 text-sm text-muted-foreground">Loading…</div>
             ) : (recentSales.data?.data.length ?? 0) === 0 ? (
-              <EmptyState icon={ShoppingBag} title="No transactions yet" description="Sales for this customer will appear here." />
+              <EmptyState icon={ShoppingBag} title="No transactions yet" description={`${terms.sales} for this ${terms.customer.toLowerCase()} will appear here.`} />
             ) : (
               <div className="overflow-x-auto px-1 pb-1">
                 <Table>

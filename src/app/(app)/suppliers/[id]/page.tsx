@@ -18,8 +18,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { purchasesService } from "@/services/purchases.service";
 import { reportsService } from "@/services/reports.service";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function SupplierViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const terms = useTerms();
   const { id } = use(params);
   const supplierId = Number(id);
   const { hasPermission, config } = useAuth();
@@ -37,13 +39,13 @@ export default function SupplierViewPage({ params }: { params: Promise<{ id: str
     enabled: !!supplierId,
   });
 
-  if (isLoading || !supplier) return <LoadingState label="Loading supplier…" />;
+  if (isLoading || !supplier) return <LoadingState label={`Loading ${terms.supplier.toLowerCase()}…`} />;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Breadcrumb items={[{ label: "Suppliers", href: "/suppliers" }, { label: supplier.name }]} />
+          <Breadcrumb items={[{ label: terms.suppliers, href: "/suppliers" }, { label: supplier.name }]} />
           <div className="mt-2 flex items-center gap-3">
             <Avatar name={supplier.name} size="lg" />
             <div>
@@ -62,20 +64,20 @@ export default function SupplierViewPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-2">
-        <StatCard label="Total Purchases" value={formatCurrency(summary.data?.summary.total ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={summary.isLoading} />
-        <StatCard label="Purchase Orders" value={formatNumber(summary.data?.summary.purchase_count ?? 0)} icon={Package} isLoading={summary.isLoading} />
+        <StatCard label={`Total ${terms.purchases}`} value={formatCurrency(summary.data?.summary.total ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={summary.isLoading} />
+        <StatCard label={`${terms.purchase} Orders`} value={formatNumber(summary.data?.summary.purchase_count ?? 0)} icon={Package} isLoading={summary.isLoading} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Recent purchases</CardTitle>
+            <CardTitle>Recent {terms.purchases.toLowerCase()}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {recentPurchases.isLoading ? (
               <div className="p-5 text-sm text-muted-foreground">Loading…</div>
             ) : (recentPurchases.data?.data.length ?? 0) === 0 ? (
-              <EmptyState icon={ShoppingBag} title="No purchases yet" description="Purchase orders from this supplier will appear here." />
+              <EmptyState icon={ShoppingBag} title={`No ${terms.purchases.toLowerCase()} yet`} description={`${terms.purchase} orders from this ${terms.supplier.toLowerCase()} will appear here.`} />
             ) : (
               <div className="overflow-x-auto px-1 pb-1">
                 <Table>

@@ -15,8 +15,10 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { ApiClientError } from "@/lib/api/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 
 export default function PurchaseViewPage({ params }: { params: Promise<{ id: string }> }) {
+  const terms = useTerms();
   const { id } = use(params);
   const purchaseId = Number(id);
   const { hasPermission, config } = useAuth();
@@ -26,16 +28,16 @@ export default function PurchaseViewPage({ params }: { params: Promise<{ id: str
   const [confirmAction, setConfirmAction] = useState<"receive" | "cancel" | null>(null);
   const currency = config?.business?.currency ?? "USD";
 
-  if (isLoading || !purchase) return <LoadingState label="Loading purchase…" />;
+  if (isLoading || !purchase) return <LoadingState label={`Loading ${terms.purchase.toLowerCase()}…`} />;
 
   const handleConfirm = async () => {
     try {
       if (confirmAction === "receive") {
         await receive.mutateAsync(purchaseId);
-        toast({ title: "Purchase received — stock updated", variant: "success" });
+        toast({ title: `${terms.purchase} received — stock updated`, variant: "success" });
       } else if (confirmAction === "cancel") {
         await cancel.mutateAsync(purchaseId);
-        toast({ title: "Purchase cancelled", variant: "success" });
+        toast({ title: `${terms.purchase} cancelled`, variant: "success" });
       }
     } catch (err) {
       toast({ title: "Action failed", description: err instanceof ApiClientError ? err.message : undefined, variant: "error" });
@@ -48,7 +50,7 @@ export default function PurchaseViewPage({ params }: { params: Promise<{ id: str
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Breadcrumb items={[{ label: "Purchases", href: "/purchases" }, { label: purchase.invoice_reference ?? `#${purchase.id}` }]} />
+          <Breadcrumb items={[{ label: terms.purchases, href: "/purchases" }, { label: purchase.invoice_reference ?? `#${purchase.id}` }]} />
           <div className="mt-2 flex items-center gap-3">
             <h1 className="text-xl font-semibold text-foreground sm:text-2xl">{purchase.invoice_reference ?? `Purchase #${purchase.id}`}</h1>
             <StatusBadge status={purchase.status} />
@@ -78,7 +80,7 @@ export default function PurchaseViewPage({ params }: { params: Promise<{ id: str
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Product</TableHead>
+                    <TableHead>{terms.product}</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Discount</TableHead>
@@ -142,13 +144,13 @@ export default function PurchaseViewPage({ params }: { params: Promise<{ id: str
       <ConfirmDialog
         open={!!confirmAction}
         onOpenChange={(open) => !open && setConfirmAction(null)}
-        title={confirmAction === "receive" ? "Mark this purchase as received?" : "Cancel this purchase?"}
+        title={confirmAction === "receive" ? `Mark this ${terms.purchase.toLowerCase()} as received?` : `Cancel this ${terms.purchase.toLowerCase()}?`}
         description={
           confirmAction === "receive"
             ? "This will add the purchased items to your stock."
-            : "If this purchase was already received, stock will be reversed."
+            : `If this ${terms.purchase.toLowerCase()} was already received, stock will be reversed.`
         }
-        confirmLabel={confirmAction === "receive" ? "Mark Received" : "Cancel Purchase"}
+        confirmLabel={confirmAction === "receive" ? "Mark Received" : `Cancel ${terms.purchase}`}
         variant={confirmAction === "receive" ? "primary" : "danger"}
         loading={receive.isPending || cancel.isPending}
         onConfirm={handleConfirm}

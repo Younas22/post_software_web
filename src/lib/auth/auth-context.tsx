@@ -79,8 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // A hard navigation, not router.push() — deliberately drops every
         // in-memory store/query-cache after an auth failure rather than
         // risk stale tenant data surviving into the next session.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        // Back to this business type's own branded login page, if known.
+        // Lands on this business type's own branded login page, if known.
         window.location.assign(loginPath());
       }
     });
