@@ -1,4 +1,4 @@
-import { apiPost, apiGet, apiPut } from "@/lib/api/client";
+import { apiDelete, apiPost, apiGet, apiPut } from "@/lib/api/client";
 import type { AuthUser } from "@/types";
 
 export interface LoginPayload {
@@ -30,4 +30,13 @@ export const authService = {
 
   updateProfile: (payload: { name: string; email: string }) =>
     apiPut<{ id: number; name: string; email: string }>("/user/profile", payload),
+
+  /** Upload / replace the signed-in user's profile photo. */
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append("avatar", file);
+    return apiPost<{ avatar_url: string }>("/user/avatar", form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
+
+  removeAvatar: () => apiDelete<{ avatar_url: null }>("/user/avatar"),
 };

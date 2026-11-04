@@ -35,7 +35,7 @@ export function SalesReportTab({ currency }: { currency: string }) {
   return (
     <div className="space-y-4">
       <ReportFiltersBar preset={preset} onPresetChange={setPreset} customRange={customRange} onCustomRangeChange={setCustomRange} branchId={branchId} onBranchChange={setBranchId} />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard label="Total Sales" value={formatCurrency(summary?.total ?? 0, currency)} icon={DollarSign} tone="brand" isLoading={report.isLoading} />
         <StatCard label="Orders" value={String(summary?.transaction_count ?? 0)} icon={ShoppingCart} isLoading={report.isLoading} />
         <StatCard

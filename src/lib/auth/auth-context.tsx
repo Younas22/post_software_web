@@ -15,6 +15,7 @@ import { subscriptionService } from "@/services/subscription.service";
 import { getToken, registerUnauthorizedHandler, setToken } from "@/lib/api/client";
 import { setDisplayTimeZone } from "@/lib/utils";
 import { loginPath } from "@/lib/branding";
+import { useBranchStore } from "@/store/branch-store";
 import type { AuthUser, ConfigBootstrap, SubscriptionInfo } from "@/types";
 
 interface AuthState {
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     registerUnauthorizedHandler(() => {
       setToken(null);
+      useBranchStore.getState().setActiveBranchId(null);
       setState({ ...initialState, isLoading: false });
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         // A hard navigation, not router.push() — deliberately drops every
@@ -102,6 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authService.logout();
     } finally {
       setToken(null);
+      // The branch selection belongs to this business — never carry it into the next login.
+      useBranchStore.getState().setActiveBranchId(null);
       setState({ ...initialState, isLoading: false });
     }
   }, []);

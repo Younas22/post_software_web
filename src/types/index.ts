@@ -10,6 +10,8 @@ export interface AuthUser {
   id: number;
   name: string;
   email: string;
+  /** Absolute URL of the profile photo, or null (initials are shown instead). */
+  avatar_url?: string | null;
   is_super_admin: boolean;
   status: Status;
   client_id: number | null;
@@ -31,6 +33,8 @@ export interface Business {
   logo: string | null;
   /** Absolute URL of `logo` (null when no logo is uploaded). */
   logo_url?: string | null;
+  /** Absolute URL of the browser-tab icon (null → the logo is used). */
+  favicon_url?: string | null;
   currency: string;
   timezone: string;
   status?: Status;
@@ -115,7 +119,7 @@ export interface BusinessTypeBranding {
 }
 
 export interface ConfigBootstrap {
-  business: { id: number; name: string; currency: string; timezone: string; logo_url?: string | null } | null;
+  business: { id: number; name: string; currency: string; timezone: string; logo_url?: string | null; favicon_url?: string | null } | null;
   /** Trade-specific branding for the business's type — null when no type is assigned. */
   business_type?: BusinessTypeBranding | null;
   /** The caller's own branch, resolved permission-free — null for an actor with no fixed branch_id (or no business). */

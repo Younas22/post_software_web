@@ -30,7 +30,7 @@ export function InstallmentsDashboardCard({ branchId, currency }: { branchId: nu
         </Link>
       </CardHeader>
       <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 content-start gap-3">
           {metrics.map((m) => (
             <div key={m.label} className="rounded-xl bg-muted/60 p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.label}</p>

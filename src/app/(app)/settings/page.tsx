@@ -14,7 +14,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useToast } from "@/components/ui/toast";
 import { ApiClientError, storageUrl } from "@/lib/api/client";
-import { Avatar } from "@/components/ui/avatar";
+import { BrandAssetPicker, type AssetValue } from "@/components/settings/brand-asset-picker";
 
 export default function SettingsPage() {
   const { hasPermission } = useAuth();
@@ -62,7 +62,9 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
   const { refresh } = useAuth();
   const { toast } = useToast();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", currency: "", timezone: "" });
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const emptyAsset: AssetValue = { file: null, remove: false };
+  const [logo, setLogo] = useState<AssetValue>(emptyAsset);
+  const [favicon, setFavicon] = useState<AssetValue>(emptyAsset);
   const [error, setError] = useState<string | null>(null);
 
   // Seeds the local form once the business record loads (arrives async, not
@@ -87,8 +89,15 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
   const submit = async () => {
     setError(null);
     try {
-      await update.mutateAsync({ ...form, logo: logoFile });
-      setLogoFile(null);
+      await update.mutateAsync({
+        ...form,
+        logo: logo.file,
+        favicon: favicon.file,
+        remove_logo: logo.remove || undefined,
+        remove_favicon: favicon.remove || undefined,
+      });
+      setLogo(emptyAsset);
+      setFavicon(emptyAsset);
       // Currency, timezone, name and logo live in the session config that
       // the whole app (sidebar brand, money/date formatting) reads from.
       await refresh();
@@ -102,15 +111,30 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
     <Card>
       <CardContent className="space-y-4 pt-6">
         {error && <Alert variant="error">{error}</Alert>}
-        <div className="flex items-center gap-4">
-          <Avatar name={form.name} src={logoFile ? URL.createObjectURL(logoFile) : (business?.logo_url ?? storageUrl(business?.logo))} size="lg" />
-          <div>
-            <input type="file" accept="image/*" id="logo-upload" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} disabled={readOnly} />
-            <Button variant="outline" size="sm" type="button" disabled={readOnly} onClick={() => document.getElementById("logo-upload")?.click()}>
-              Change logo
-            </Button>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Branding</p>
+          <p className="text-xs text-muted-foreground">Your logo and browser-tab icon appear across the whole system for everyone in your business.</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <BrandAssetPicker
+              kind="logo"
+              savedUrl={business?.logo_url ?? storageUrl(business?.logo) ?? null}
+              value={logo}
+              onChange={setLogo}
+              businessName={form.name}
+              disabled={readOnly}
+            />
+            <BrandAssetPicker
+              kind="favicon"
+              savedUrl={business?.favicon_url ?? null}
+              value={favicon}
+              onChange={setFavicon}
+              businessName={form.name}
+              fallbackUrl={logo.remove ? null : (business?.logo_url ?? null)}
+              disabled={readOnly}
+            />
           </div>
         </div>
+        <p className="border-t border-border pt-4 text-sm font-semibold text-foreground">Business details</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Business name" required className="sm:col-span-2">
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={readOnly} />

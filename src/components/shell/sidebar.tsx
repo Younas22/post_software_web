@@ -192,7 +192,7 @@ function SidebarFooter({ collapsed, onToggle }: { collapsed: boolean; onToggle: 
           href="/settings/profile"
           className="mb-2 flex items-center gap-3 rounded-xl bg-sidebar-card p-2.5 transition-colors hover:bg-sidebar-hover"
         >
-          <Avatar name={user.name} size="md" />
+          <Avatar name={user.name} src={user.avatar_url} size="md" />
           <div className="min-w-0 leading-tight">
             <p className="truncate text-sm font-semibold text-sidebar-foreground">{user.name}</p>
             {role && <p className="truncate text-xs capitalize text-sidebar-muted">{role}</p>}

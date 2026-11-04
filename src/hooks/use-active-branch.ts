@@ -28,13 +28,21 @@ export function useActiveBranch() {
   const branches = useMemo(() => (pinned ? [] : allBranches), [allBranches, pinned]);
 
   useEffect(() => {
-    if (pinned || activeBranchId || branches.length === 0) return;
+    if (pinned || branches.length === 0) return;
+    // The selection is persisted in localStorage, so it can be a branch of a
+    // *different* business left over from a previous login on this browser —
+    // every branch-scoped request would then be rejected ("The selected
+    // branch is invalid"). Only keep it if it's one of this user's branches.
+    if (activeBranchId && branches.some((b) => b.id === activeBranchId)) return;
     const main = branches.find((b) => b.is_main) ?? branches[0];
     setActiveBranchId(main.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinned, activeBranchId, branches.length]);
+  }, [pinned, activeBranchId, branches]);
 
-  const branchId = pinned ?? activeBranchId;
+  // Never hand a branch id we haven't confirmed belongs to this user to callers.
+  const validUnpinned = activeBranchId && branches.some((b) => b.id === activeBranchId) ? activeBranchId : null;
+
+  const branchId = pinned ?? validUnpinned;
 
   // Cheap to recompute each render — not worth the memoization (and the
   // React Compiler already handles this automatically where it helps).

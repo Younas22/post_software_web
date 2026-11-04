@@ -30,8 +30,13 @@ export function BusinessBrand({
   const { typeName } = useBranding();
   const name = config?.business?.name ?? (user?.is_super_admin ? "Admin" : "Universal POS");
   const logo = config?.business?.logo_url ?? null;
-  const [failedLogo, setFailedLogo] = useState<string | null>(null);
-  const showLogo = logo && failedLogo !== logo;
+  // A load failure is retried (twice, with a cache-busting query) before
+  // falling back to initials — a large logo on a busy local server can fail
+  // once transiently, and one hiccup shouldn't hide the logo for the session.
+  const [failure, setFailure] = useState<{ logo: string; count: number } | null>(null);
+  const failures = failure && failure.logo === logo ? failure.count : 0;
+  const showLogo = logo && failures <= 2;
+  const logoSrc = logo && failures > 0 ? `${logo}${logo.includes("?") ? "&" : "?"}retry=${failures}` : logo;
 
   const tile = size === "sm" ? "size-8 rounded-lg text-xs" : "size-10 rounded-xl text-sm";
   const nameColor = tone === "sidebar" ? "text-sidebar-foreground" : "text-foreground";
@@ -42,10 +47,18 @@ export function BusinessBrand({
       {showLogo ? (
         // eslint-disable-next-line @next/next/no-img-element -- user-uploaded business logo served by the Laravel backend
         <img
-          src={logo}
+          key={logoSrc}
+          src={logoSrc ?? undefined}
           alt=""
           className={cn("shrink-0 border border-black/5 bg-white object-contain p-0.5 shadow-xs", tile)}
-          onError={() => setFailedLogo(logo)}
+          onError={() => {
+            const next = failures + 1;
+            if (next <= 2) {
+              setTimeout(() => setFailure({ logo, count: next }), 1500 * next);
+            } else {
+              setFailure({ logo, count: next });
+            }
+          }}
         />
       ) : (
         <div
@@ -78,6 +91,7 @@ export function BusinessDocumentBranding() {
   const { config } = useAuth();
   const name = config?.business?.name;
   const logo = config?.business?.logo_url;
+  const favicon = config?.business?.favicon_url;
   const brandType = config?.business_type ?? null;
   const color = brandType?.theme.primary_color;
   const sidebar = brandType?.theme.sidebar_style;
@@ -94,17 +108,36 @@ export function BusinessDocumentBranding() {
     document.title = base === name || base === "POS" || base === "Universal POS" ? name : `${base} · ${name}`;
   });
 
-  useEffect(() => {
-    if (!logo) return;
-    let link = document.querySelector<HTMLLinkElement>("link[data-business-favicon]");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      link.dataset.businessFavicon = "true";
-      document.head.appendChild(link);
-    }
-    link.href = logo;
-  }, [logo]);
+  // Tab icon: the business's own favicon, else its logo, else the platform icon.
+  useEffect(() => applyFavicon(favicon ?? logo ?? null), [favicon, logo]);
 
   return null;
+}
+
+/**
+ * Points every icon <link> the page already has (Next.js emits
+ * /favicon.ico and /icon.svg) at `href` — only adding one more link
+ * wouldn't reliably win, browsers may keep showing the first. The original
+ * hrefs are remembered so passing null restores the platform icon (e.g.
+ * after switching to a business with no logo).
+ */
+function applyFavicon(href: string | null) {
+  const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'));
+  if (links.length === 0 && href) {
+    const link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
+    links.push(link);
+  }
+  links.forEach((link) => {
+    if (link.dataset.originalHref === undefined) link.dataset.originalHref = link.getAttribute("href") ?? "";
+    if (href) {
+      link.href = href;
+      // The original type (e.g. image/svg+xml) would no longer be true.
+      link.removeAttribute("type");
+      link.removeAttribute("sizes");
+    } else if (link.dataset.originalHref) {
+      link.href = link.dataset.originalHref;
+    }
+  });
 }
