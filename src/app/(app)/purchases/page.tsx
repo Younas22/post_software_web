@@ -56,7 +56,7 @@ export default function PurchasesPage() {
         {canCreate && (
           <Button asChild>
             <Link href="/purchases/new">
-              <Plus /> New Purchase
+              <Plus /> New {terms.purchase}
             </Link>
           </Button>
         )}
@@ -99,7 +99,7 @@ export default function PurchasesPage() {
           canCreate ? (
             <Button asChild size="sm">
               <Link href="/purchases/new">
-                <Plus /> New Purchase
+                <Plus /> New {terms.purchase}
               </Link>
             </Button>
           ) : undefined

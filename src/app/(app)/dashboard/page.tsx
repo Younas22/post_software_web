@@ -100,7 +100,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         <StatCard label="Today's Revenue" value={money(data?.today.sales_total ?? 0)} icon={DollarSign} tone="brand" isLoading={dashboard.isLoading} />
         <StatCard label={`Today's ${terms.sales}`} value={formatNumber(data?.today.orders_count ?? 0)} icon={ShoppingCart} isLoading={dashboard.isLoading} />
         {showStock && (
@@ -140,9 +140,9 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               <Metric label={`Total ${terms.sales}`} value={money(salesReport.data?.summary.total ?? 0)} />
-              <Metric label="Orders" value={formatNumber(salesReport.data?.summary.transaction_count ?? 0)} />
+              <Metric label={terms.sales} value={formatNumber(salesReport.data?.summary.transaction_count ?? 0)} />
               <Metric
-                label="Avg Order"
+                label={`Avg ${terms.sale}`}
                 value={money(
                   salesReport.data?.summary.transaction_count
                     ? Number(salesReport.data.summary.total) / salesReport.data.summary.transaction_count
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               />
               <Metric label="Discount" value={money(salesReport.data?.summary.discount ?? 0)} />
               <Metric label="Tax" value={money(salesReport.data?.summary.tax ?? 0)} />
-              <Metric label="Net Sales" value={money(salesReport.data?.summary.subtotal ?? 0)} />
+              <Metric label="Net Revenue" value={money(salesReport.data?.summary.subtotal ?? 0)} />
             </div>
           )}
         </CardContent>

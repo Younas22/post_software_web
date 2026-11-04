@@ -142,7 +142,7 @@ export default function ProductsPage() {
           {canCreate && (
             <Button asChild>
               <Link href="/products/new">
-                <Plus /> New Product
+                <Plus /> New {terms.product}
               </Link>
             </Button>
           )}
@@ -196,7 +196,7 @@ export default function ProductsPage() {
           canCreate && !search && !categoryId && !status && !type ? (
             <Button asChild size="sm">
               <Link href="/products/new">
-                <Plus /> New Product
+                <Plus /> New {terms.product}
               </Link>
             </Button>
           ) : undefined

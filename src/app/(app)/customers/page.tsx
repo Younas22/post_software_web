@@ -115,7 +115,7 @@ export default function CustomersPage() {
         {canCreate && (
           <Button asChild>
             <Link href="/customers/new">
-              <Plus /> New Customer
+              <Plus /> New {terms.customer}
             </Link>
           </Button>
         )}
@@ -148,7 +148,7 @@ export default function CustomersPage() {
           canCreate && !search && !status ? (
             <Button asChild size="sm">
               <Link href="/customers/new">
-                <Plus /> New Customer
+                <Plus /> New {terms.customer}
               </Link>
             </Button>
           ) : undefined

@@ -6,6 +6,7 @@ import { Modal, ModalContent } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Receipt } from "@/components/receipt/receipt";
 import { formatCurrency } from "@/lib/utils";
+import { useTerms } from "@/hooks/use-branding";
 import type { Receipt as ReceiptData } from "@/services/sales.service";
 
 export function SaleSuccess({
@@ -17,6 +18,7 @@ export function SaleSuccess({
   currency: string;
   onNewSale: () => void;
 }) {
+  const terms = useTerms();
   return (
     <Modal open onOpenChange={(open) => !open && onNewSale()}>
       <ModalContent size="sm" hideClose onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -25,7 +27,7 @@ export function SaleSuccess({
             <CheckCircle2 className="size-7" />
           </div>
           <div>
-            <p className="text-lg font-semibold text-foreground">Sale completed</p>
+            <p className="text-lg font-semibold text-foreground">{terms.sale} completed</p>
             <p className="text-sm text-muted-foreground">{receipt.invoice_number}</p>
           </div>
           <p className="text-3xl font-bold text-foreground">{formatCurrency(receipt.total, currency)}</p>
@@ -41,7 +43,7 @@ export function SaleSuccess({
               <Printer /> Print Receipt
             </Button>
             <Button className="flex-1" onClick={onNewSale}>
-              <Plus /> New Sale
+              <Plus /> New {terms.sale}
             </Button>
           </div>
         </div>

@@ -115,7 +115,7 @@ export default function SuppliersPage() {
         {canCreate && (
           <Button asChild>
             <Link href="/suppliers/new">
-              <Plus /> New Supplier
+              <Plus /> New {terms.supplier}
             </Link>
           </Button>
         )}
@@ -148,7 +148,7 @@ export default function SuppliersPage() {
           canCreate && !search && !status ? (
             <Button asChild size="sm">
               <Link href="/suppliers/new">
-                <Plus /> New Supplier
+                <Plus /> New {terms.supplier}
               </Link>
             </Button>
           ) : undefined
