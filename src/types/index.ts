@@ -69,8 +69,55 @@ export interface Branch {
   status: Status;
 }
 
+/** What a trade calls things — "Patient" instead of "Customer", "Menu" instead of "Products", ... */
+export interface Terminology {
+  customer: string;
+  customers: string;
+  product: string;
+  products: string;
+  sale: string;
+  sales: string;
+  supplier: string;
+  suppliers: string;
+  purchase: string;
+  purchases: string;
+  category: string;
+  categories: string;
+  inventory: string;
+  pos: string;
+}
+
+export type SidebarStyle = "light" | "dark" | "brand";
+
+export interface BrandTheme {
+  primary_color: string;
+  sidebar_style: SidebarStyle;
+  login_headline: string;
+  login_tagline: string;
+  login_highlights: string[];
+  login_image?: string | null;
+  login_image_url: string | null;
+}
+
+export type HideableModule = "inventory" | "purchases" | "suppliers" | "returns" | "expenses";
+export type OptionalModule = "installments";
+
+/** GET /config → business_type, and GET /public/branding/{slug} (branded login page). */
+export interface BusinessTypeBranding {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description: string | null;
+  theme: BrandTheme;
+  terminology: Terminology;
+  modules: { hidden: HideableModule[]; enabled: OptionalModule[] };
+}
+
 export interface ConfigBootstrap {
   business: { id: number; name: string; currency: string; timezone: string; logo_url?: string | null } | null;
+  /** Trade-specific branding for the business's type — null when no type is assigned. */
+  business_type?: BusinessTypeBranding | null;
   /** The caller's own branch, resolved permission-free — null for an actor with no fixed branch_id (or no business). */
   branch: { id: number; name: string; is_main: boolean } | null;
   settings: Record<string, unknown>;
@@ -396,4 +443,112 @@ export interface AppNotification {
   data: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
+}
+
+/* ───────────── Installments (business types with the `installments` module) ───────────── */
+
+export type InstallmentFrequency = "weekly" | "biweekly" | "monthly";
+export type InstallmentPlanStatus = "active" | "completed" | "cancelled";
+export type InstallmentScheduleStatus = "paid" | "partial" | "overdue" | "due" | "upcoming";
+
+export interface InstallmentSchedule {
+  id: number;
+  installment_plan_id: number;
+  sequence: number;
+  due_date: string;
+  amount: string;
+  paid_amount: string;
+  paid_at: string | null;
+  status: InstallmentScheduleStatus;
+}
+
+export interface InstallmentPayment {
+  id: number;
+  installment_plan_id: number;
+  receipt_number: string;
+  amount: string;
+  payment_date: string;
+  is_down_payment: boolean;
+  reference: string | null;
+  notes: string | null;
+  payment_method?: { id: number; name: string } | null;
+  user?: { id: number; name: string } | null;
+}
+
+export interface InstallmentPlanItem {
+  id: number;
+  product_id: number;
+  quantity: number;
+  unit_price: string;
+  line_total: string;
+  serial_number: string | null;
+  product?: { id: number; name: string; sku: string; type: ProductType } | null;
+}
+
+export interface InstallmentPlan {
+  id: number;
+  business_id: number;
+  branch_id: number;
+  customer_id: number;
+  plan_number: string;
+  subtotal: string;
+  markup_percent: string;
+  markup_amount: string;
+  total_amount: string;
+  down_payment: string;
+  financed_amount: string;
+  installments_count: number;
+  frequency: InstallmentFrequency;
+  installment_amount: string;
+  start_date: string;
+  first_due_date: string;
+  paid_amount: string;
+  balance: string;
+  progress: number;
+  status: InstallmentPlanStatus;
+  guarantor_name: string | null;
+  guarantor_phone: string | null;
+  guarantor_cnic: string | null;
+  guarantor_address: string | null;
+  customer_cnic: string | null;
+  notes: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  next_due_date?: string | null;
+  overdue_amount?: string;
+  paid_installments?: number;
+  items_count?: number;
+  customer?: Pick<Customer, "id" | "name" | "phone"> & Partial<Pick<Customer, "email" | "address">>;
+  branch?: Pick<Branch, "id" | "name">;
+  user?: { id: number; name: string } | null;
+  items?: InstallmentPlanItem[];
+  schedules?: InstallmentSchedule[];
+  payments?: InstallmentPayment[];
+}
+
+export interface InstallmentDueRow {
+  id: number;
+  installment_plan_id: number;
+  plan_number: string | null;
+  customer: Pick<Customer, "id" | "name" | "phone"> | null;
+  sequence: number;
+  due_date: string;
+  amount: string;
+  paid_amount: string;
+  remaining: string;
+  status: InstallmentScheduleStatus;
+}
+
+export interface InstallmentSummary {
+  active_count: number;
+  completed_count: number;
+  outstanding: string;
+  overdue_amount: string;
+  overdue_plans: number;
+  due_today: string;
+  due_this_week: string;
+  collected_today: string;
+  collected_this_month: string;
+  upcoming: InstallmentDueRow[];
+  overdue: InstallmentDueRow[];
 }
