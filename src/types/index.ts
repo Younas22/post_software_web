@@ -238,6 +238,11 @@ export interface Customer {
   id: number;
   business_id: number;
   name: string;
+  /** S/O, D/O or W/O (installment receipts). */
+  guardian_relation?: "S/O" | "D/O" | "W/O" | null;
+  guardian_name?: string | null;
+  /** A photo is stored privately — fetch it via customersService.photo(). */
+  has_photo?: boolean;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -473,12 +478,15 @@ export interface InstallmentPayment {
   installment_plan_id: number;
   receipt_number: string;
   amount: string;
+  discount?: string;
+  fine?: string;
   payment_date: string;
   is_down_payment: boolean;
   reference: string | null;
   notes: string | null;
   payment_method?: { id: number; name: string } | null;
   user?: { id: number; name: string } | null;
+  recovery_officer?: { id: number; name: string } | null;
 }
 
 export interface InstallmentPlanItem {
@@ -509,6 +517,8 @@ export interface InstallmentPlan {
   start_date: string;
   first_due_date: string;
   paid_amount: string;
+  discount_amount?: string;
+  fine_amount?: string;
   balance: string;
   progress: number;
   status: InstallmentPlanStatus;
@@ -524,7 +534,8 @@ export interface InstallmentPlan {
   overdue_amount?: string;
   paid_installments?: number;
   items_count?: number;
-  customer?: Pick<Customer, "id" | "name" | "phone"> & Partial<Pick<Customer, "email" | "address">>;
+  customer?: Pick<Customer, "id" | "name" | "phone"> & Partial<Pick<Customer, "email" | "address" | "guardian_relation" | "guardian_name" | "has_photo">>;
+  recovery_officer?: { id: number; name: string } | null;
   branch?: Pick<Branch, "id" | "name">;
   user?: { id: number; name: string } | null;
   items?: InstallmentPlanItem[];

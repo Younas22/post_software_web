@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useBranding } from "@/hooks/use-branding";
 import { useBusiness, useBusinessMutations, useLocaleOptions } from "@/hooks/use-business";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
@@ -192,10 +194,14 @@ function BusinessTab({ readOnly }: { readOnly: boolean }) {
 function ReceiptTaxTab({ readOnly }: { readOnly: boolean }) {
   const { data: business } = useBusiness();
   const { updateSettings } = useBusinessMutations();
+  const { config, refresh } = useAuth();
   const { toast } = useToast();
-  const [taxRate, setTaxRate] = useState("");
-  const [invoicePrefix, setInvoicePrefix] = useState("INV-");
-  const [receiptFooter, setReceiptFooter] = useState("");
+  // Seeded from the business's saved settings (GET /config) — previously these
+  // started blank, so saving the tab wiped values that were already set.
+  const saved = config?.settings ?? {};
+  const [taxRate, setTaxRate] = useState(saved.tax_rate != null ? String(saved.tax_rate) : "");
+  const [invoicePrefix, setInvoicePrefix] = useState(typeof saved.invoice_prefix === "string" ? saved.invoice_prefix : "INV-");
+  const [receiptFooter, setReceiptFooter] = useState(typeof saved.receipt_footer === "string" ? saved.receipt_footer : "");
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -206,6 +212,7 @@ function ReceiptTaxTab({ readOnly }: { readOnly: boolean }) {
         invoice_prefix: invoicePrefix || null,
         receipt_footer: receiptFooter || null,
       });
+      await refresh();
       toast({ title: "Settings saved", variant: "success" });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
@@ -213,6 +220,7 @@ function ReceiptTaxTab({ readOnly }: { readOnly: boolean }) {
   };
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardContent className="space-y-4 pt-6">
         {error && <Alert variant="error">{error}</Alert>}
@@ -231,6 +239,77 @@ function ReceiptTaxTab({ readOnly }: { readOnly: boolean }) {
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} loading={updateSettings.isPending}>
               Save changes
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    <InstallmentReceiptSettings readOnly={readOnly} />
+    </div>
+  );
+}
+
+/** The Urdu instructions and paper size of the installment recovery receipt. */
+function InstallmentReceiptSettings({ readOnly }: { readOnly: boolean }) {
+  const { config, refresh } = useAuth();
+  const { hasModule } = useBranding();
+  const { updateSettings } = useBusinessMutations();
+  const { toast } = useToast();
+  const saved = config?.settings ?? {};
+  const [left, setLeft] = useState(typeof saved.installment_receipt_note_left === "string" ? saved.installment_receipt_note_left : "");
+  const [right, setRight] = useState(typeof saved.installment_receipt_note_right === "string" ? saved.installment_receipt_note_right : "");
+  const [paper, setPaper] = useState(typeof saved.installment_receipt_paper === "string" ? saved.installment_receipt_paper : "a5");
+  const [error, setError] = useState<string | null>(null);
+
+  if (!hasModule("installments")) return null;
+
+  const submit = async () => {
+    setError(null);
+    try {
+      await updateSettings.mutateAsync({
+        installment_receipt_note_left: left.trim() || null,
+        installment_receipt_note_right: right.trim() || null,
+        installment_receipt_paper: paper,
+      });
+      await refresh();
+      toast({ title: "Receipt settings saved", variant: "success" });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
+    }
+  };
+
+  const urdu = "text-right text-lg leading-[2.2] [font-family:'Noto_Nastaliq_Urdu',serif]";
+
+  return (
+    <Card>
+      <CardContent className="space-y-4 pt-6">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Installment recovery receipt</p>
+          <p className="text-xs text-muted-foreground">The two Urdu instructions printed at the top of every recovery receipt. Use {"{day}"} where the monthly due day should appear (taken from each plan).</p>
+        </div>
+        {error && <Alert variant="error">{error}</Alert>}
+        <Field label="Left instruction (Urdu)">
+          <Textarea dir="rtl" lang="ur" rows={2} className={urdu} value={left} onChange={(e) => setLeft(e.target.value)} disabled={readOnly} />
+        </Field>
+        <Field label="Right instruction (Urdu)" hint="e.g. ... ہر ماہ کی {day} تاریخ تک ...">
+          <Textarea dir="rtl" lang="ur" rows={2} className={urdu} value={right} onChange={(e) => setRight(e.target.value)} disabled={readOnly} />
+        </Field>
+        <Field label="Paper size">
+          <Select value={paper} onValueChange={setPaper} disabled={readOnly}>
+            <SelectTrigger aria-label="Paper size">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="a5">A5 portrait (half A4)</SelectItem>
+              <SelectItem value="a5-landscape">A5 landscape</SelectItem>
+              <SelectItem value="a4">A4 portrait</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        {!readOnly && (
+          <div className="flex justify-end border-t border-border pt-4">
+            <Button onClick={submit} loading={updateSettings.isPending}>
+              Save receipt settings
             </Button>
           </div>
         )}

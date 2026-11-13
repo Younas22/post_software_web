@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { HandCoins } from "lucide-react";
 import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal";
 import { Field } from "@/components/ui/field";
@@ -12,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/toast";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
 import { useInstallmentMutations } from "@/hooks/use-installments";
+import { useAuth } from "@/lib/auth/auth-context";
+import { employeesService } from "@/services/employees.service";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { InstallmentPayment, InstallmentPlan } from "@/types";
@@ -42,6 +45,14 @@ export function CollectPaymentModal({
   const { toast } = useToast();
   const methods = usePaymentMethods();
   const { collect } = useInstallmentMutations();
+  const { user, hasPermission } = useAuth();
+  // Staff who can be named as recovery officer (needs users.view; otherwise it's simply "me").
+  const staff = useQuery({
+    queryKey: ["employees", "recovery-officers"],
+    queryFn: () => employeesService.list({ per_page: 100, status: "active" }),
+    enabled: open && hasPermission("users.view"),
+    staleTime: 5 * 60_000,
+  });
   const money = (v: number | string) => formatCurrency(v, currency);
 
   const balance = Number(plan.balance);
@@ -56,6 +67,9 @@ export function CollectPaymentModal({
   const [date, setDate] = useState(today());
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [discount, setDiscount] = useState("");
+  const [fine, setFine] = useState("");
+  const [officerId, setOfficerId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,6 +80,9 @@ export function CollectPaymentModal({
     setDate(today());
     setReference("");
     setNotes("");
+    setDiscount("");
+    setFine("");
+    setOfficerId(String(plan.recovery_officer?.id ?? user?.id ?? ""));
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, plan.id]);
@@ -86,13 +103,19 @@ export function CollectPaymentModal({
 
   const submit = async () => {
     setError(null);
-    const value = Number(amount);
-    if (!value || value <= 0) {
-      setError("Enter an amount greater than zero.");
+    const value = Number(amount) || 0;
+    const disc = Number(discount) || 0;
+    const fee = Number(fine) || 0;
+    if (value < 0 || disc < 0 || fee < 0) {
+      setError("Amounts can't be negative.");
       return;
     }
-    if (value > balance + 0.001) {
-      setError(`The amount can't be more than the remaining balance (${money(balance)}).`);
+    if (value + disc <= 0) {
+      setError("Enter an amount (or a discount) greater than zero.");
+      return;
+    }
+    if (value + disc > balance + 0.001) {
+      setError(`Amount plus discount can't be more than the remaining balance (${money(balance)}).`);
       return;
     }
     try {
@@ -100,6 +123,9 @@ export function CollectPaymentModal({
         id: plan.id,
         payload: {
           amount: value,
+          discount: disc,
+          fine: fee,
+          recovery_officer_id: officerId ? Number(officerId) : null,
           payment_method_id: methodId ? Number(methodId) : null,
           payment_date: date,
           reference: reference || null,
@@ -172,6 +198,32 @@ export function CollectPaymentModal({
             <Field label="Date" required>
               <Input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
             </Field>
+            <Field label="Discount" hint="Authorized reduction of the balance">
+              <Input type="number" min="0" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
+            </Field>
+            <Field label="Fine" hint="Late fee — collected on top, doesn't reduce the balance">
+              <Input type="number" min="0" step="0.01" value={fine} onChange={(e) => setFine(e.target.value)} placeholder="0" />
+            </Field>
+            <Field label="Recovery officer">
+              <Select value={officerId} onValueChange={setOfficerId}>
+                <SelectTrigger aria-label="Recovery officer">
+                  <SelectValue placeholder="Select officer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {user && <SelectItem value={String(user.id)}>{user.name} (me)</SelectItem>}
+                  {(staff.data?.data ?? [])
+                    .filter((e) => e.id !== user?.id)
+                    .map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.name}
+                      </SelectItem>
+                    ))}
+                  {plan.recovery_officer && plan.recovery_officer.id !== user?.id && !(staff.data?.data ?? []).some((e) => e.id === plan.recovery_officer?.id) && (
+                    <SelectItem value={String(plan.recovery_officer.id)}>{plan.recovery_officer.name}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Reference" hint="Cheque / transaction no. (optional)">
               <Input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={100} />
             </Field>
@@ -186,7 +238,7 @@ export function CollectPaymentModal({
             Cancel
           </Button>
           <Button onClick={submit} loading={collect.isPending}>
-            Collect {amount && Number(amount) > 0 ? money(Number(amount)) : ""}
+            Collect {(Number(amount) || 0) + (Number(fine) || 0) > 0 ? money((Number(amount) || 0) + (Number(fine) || 0)) : ""} &amp; print
           </Button>
         </ModalFooter>
       </ModalContent>

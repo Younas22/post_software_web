@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Package, ShieldCheck, Trash2, User, Wallet } from "lucide-react";
@@ -23,6 +24,9 @@ import { useToast } from "@/components/ui/toast";
 import { CustomerCombobox } from "@/components/shared/customer-combobox";
 import { ProductCombobox } from "@/components/shared/product-combobox";
 import { FREQUENCY_LABEL, InstallmentsGate } from "@/components/installments/installment-ui";
+import { CustomerPhotoCapture } from "@/components/installments/customer-photo-capture";
+import { customersService } from "@/services/customers.service";
+import { employeesService } from "@/services/employees.service";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import type { Customer, InstallmentFrequency, Product } from "@/types";
@@ -82,6 +86,39 @@ function NewPlanForm() {
   const todayIso = isoDate(new Date());
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerCnic, setCustomerCnic] = useState("");
+  const [guardianRelation, setGuardianRelation] = useState<"S/O" | "D/O" | "W/O">("S/O");
+  const [guardianName, setGuardianName] = useState("");
+  const [photo, setPhoto] = useState<Blob | null>(null);
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(null);
+  const [officerId, setOfficerId] = useState<string>("");
+  const { user, hasPermission } = useAuth();
+  const staff = useQuery({
+    queryKey: ["employees", "recovery-officers"],
+    queryFn: () => employeesService.list({ per_page: 100, status: "active" }),
+    enabled: hasPermission("users.view"),
+    staleTime: 5 * 60_000,
+  });
+
+  // Picking a customer brings in what's on file: guardian + their saved photo.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGuardianRelation(customer?.guardian_relation ?? "S/O");
+    setGuardianName(customer?.guardian_name ?? "");
+    setPhoto(null);
+    setSavedPhotoUrl(null);
+    if (!customer?.has_photo) return;
+    let url: string | null = null;
+    let cancelled = false;
+    void customersService.photoObjectUrl(customer.id).then((u) => {
+      url = u;
+      if (!cancelled) setSavedPhotoUrl(u);
+      else if (u) URL.revokeObjectURL(u);
+    });
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [customer]);
   const [lines, setLines] = useState<Line[]>([]);
   const [markup, setMarkup] = useState("0");
   const [downPayment, setDownPayment] = useState("0");
@@ -140,6 +177,18 @@ function NewPlanForm() {
     if (calc.down > calc.total) return setError("The down payment can't be more than the total price.");
 
     try {
+      // Guardian (S/O ...) and photo belong to the customer record — the
+      // same customer, not a copy — so every later receipt shows them.
+      if ((customer.guardian_name ?? "") !== guardianName.trim() || (customer.guardian_relation ?? "S/O") !== guardianRelation) {
+        await customersService.update(customer.id, {
+          name: customer.name,
+          status: customer.status,
+          guardian_relation: guardianName.trim() ? guardianRelation : null,
+          guardian_name: guardianName.trim() || null,
+        });
+      }
+      if (photo) await customersService.uploadPhoto(customer.id, photo, "customer.jpg");
+
       const plan = await create.mutateAsync({
         branch_id: branchId,
         customer_id: customer.id,
@@ -152,6 +201,7 @@ function NewPlanForm() {
         start_date: startDate,
         first_due_date: firstDue,
         customer_cnic: customerCnic || null,
+        recovery_officer_id: officerId ? Number(officerId) : null,
         guarantor_name: guarantor.name || null,
         guarantor_phone: guarantor.phone || null,
         guarantor_cnic: guarantor.cnic || null,
@@ -212,9 +262,46 @@ function NewPlanForm() {
                   <p className="text-muted-foreground">{[customer.phone, customer.address].filter(Boolean).join(" · ") || "No phone / address on file"}</p>
                 </div>
               )}
+              <Field label="Relation" hint="Printed on the receipt as S/O, D/O or W/O">
+                <Select value={guardianRelation} onValueChange={(v) => setGuardianRelation(v as "S/O" | "D/O" | "W/O")} disabled={!customer}>
+                  <SelectTrigger aria-label="Relation">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="S/O">S/O — Son of</SelectItem>
+                    <SelectItem value="D/O">D/O — Daughter of</SelectItem>
+                    <SelectItem value="W/O">W/O — Wife of</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Father / Husband name">
+                <Input value={guardianName} onChange={(e) => setGuardianName(e.target.value)} maxLength={255} disabled={!customer} />
+              </Field>
               <Field label="CNIC / ID number" hint="Optional — printed on the plan" error={fieldErrors.customer_cnic}>
                 <Input value={customerCnic} onChange={(e) => setCustomerCnic(e.target.value)} placeholder="35202-1234567-1" maxLength={30} />
               </Field>
+              <Field label="Recovery officer" hint="Collects this account's installments">
+                <Select value={officerId || String(user?.id ?? "")} onValueChange={setOfficerId}>
+                  <SelectTrigger aria-label="Recovery officer">
+                    <SelectValue placeholder="Select officer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {user && <SelectItem value={String(user.id)}>{user.name} (me)</SelectItem>}
+                    {(staff.data?.data ?? [])
+                      .filter((e) => e.id !== user?.id)
+                      .map((e) => (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {e.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              {customer && (
+                <div className="sm:col-span-2">
+                  <CustomerPhotoCapture savedUrl={savedPhotoUrl} value={photo} onChange={setPhoto} />
+                </div>
+              )}
             </div>
           </Section>
 

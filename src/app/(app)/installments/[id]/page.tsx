@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { CollectPaymentModal } from "@/components/installments/collect-payment-modal";
+import { ReceiptPreviewModal } from "@/components/installments/receipt-preview-modal";
 import { FREQUENCY_LABEL, InstallmentsGate, InstallmentStatusBadge, ProgressBar, relativeDue } from "@/components/installments/installment-ui";
 import { ApiClientError } from "@/lib/api/client";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -39,6 +40,8 @@ function PlanDetail() {
   const { cancel } = useInstallmentMutations();
   const plan = useInstallment(Number.isFinite(planId) ? planId : undefined);
   const [collectOpen, setCollectOpen] = useState(false);
+  // Recovery receipt being previewed / printed (and whether to open the print dialog straight away).
+  const [receipt, setReceipt] = useState<{ id: number; autoPrint: boolean } | null>(null);
   const currency = config?.business?.currency ?? "USD";
   const money = (v: number | string) => formatCurrency(v, currency);
 
@@ -193,8 +196,9 @@ function PlanDetail() {
                         <TableHead>Receipt</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Method</TableHead>
-                        <TableHead>Received by</TableHead>
+                        <TableHead>Recovery officer</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="w-24" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -208,8 +212,17 @@ function PlanDetail() {
                           </TableCell>
                           <TableCell>{formatDate(pay.payment_date)}</TableCell>
                           <TableCell className="text-muted-foreground">{pay.payment_method?.name ?? "—"}</TableCell>
-                          <TableCell className="text-muted-foreground">{pay.user?.name ?? "—"}</TableCell>
-                          <TableCell className="text-right font-semibold tabular-nums text-success">{money(pay.amount)}</TableCell>
+                          <TableCell className="text-muted-foreground">{pay.recovery_officer?.name ?? pay.user?.name ?? "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            <p className="font-semibold text-success">{money(pay.amount)}</p>
+                            {Number(pay.discount ?? 0) > 0 && <p className="text-xs text-muted-foreground">Discount {money(pay.discount ?? 0)}</p>}
+                            {Number(pay.fine ?? 0) > 0 && <p className="text-xs text-muted-foreground">Fine {money(pay.fine ?? 0)}</p>}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm" onClick={() => setReceipt({ id: pay.id, autoPrint: false })}>
+                              <Printer /> Receipt
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -274,7 +287,23 @@ function PlanDetail() {
         </div>
       </div>
 
-      {canCollect && <CollectPaymentModal plan={p} open={collectOpen} onOpenChange={setCollectOpen} currency={currency} />}
+      {canCollect && (
+        <CollectPaymentModal
+          plan={p}
+          open={collectOpen}
+          onOpenChange={setCollectOpen}
+          currency={currency}
+          // A recovery is always followed by its receipt (print dialog opens straight away).
+          onCollected={(payment) => setReceipt({ id: payment.id, autoPrint: true })}
+        />
+      )}
+      <ReceiptPreviewModal
+        planId={p.id}
+        paymentId={receipt?.id ?? null}
+        open={receipt !== null}
+        autoPrint={receipt?.autoPrint}
+        onOpenChange={(open) => !open && setReceipt(null)}
+      />
 
       <PrintableStatement plan={p} money={money} businessName={config?.business?.name ?? ""} customerLabel={terms.customer} />
     </div>

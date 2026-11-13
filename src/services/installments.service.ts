@@ -1,6 +1,7 @@
 import { apiGet, apiGetList, apiPatch, apiPost } from "@/lib/api/client";
 import type { ListParams } from "@/lib/api/types";
 import type { InstallmentFrequency, InstallmentPayment, InstallmentPlan, InstallmentSummary } from "@/types";
+import type { InstallmentReceiptData } from "@/lib/installment-receipt-template";
 
 export interface InstallmentPlanPayload {
   branch_id: number;
@@ -14,6 +15,7 @@ export interface InstallmentPlanPayload {
   start_date: string;
   first_due_date: string;
   customer_cnic?: string | null;
+  recovery_officer_id?: number | null;
   guarantor_name?: string | null;
   guarantor_phone?: string | null;
   guarantor_cnic?: string | null;
@@ -23,6 +25,11 @@ export interface InstallmentPlanPayload {
 
 export interface CollectPayload {
   amount: number;
+  /** Authorized reduction of what is owed. */
+  discount?: number;
+  /** Late fee collected on top (never reduces the balance). */
+  fine?: number;
+  recovery_officer_id?: number | null;
   payment_method_id?: number | null;
   payment_date: string;
   reference?: string | null;
@@ -37,4 +44,6 @@ export const installmentsService = {
   collect: (id: number, payload: CollectPayload) =>
     apiPost<{ payment: InstallmentPayment; plan: InstallmentPlan }>(`/installments/${id}/payments`, payload),
   cancel: (id: number) => apiPatch<InstallmentPlan>(`/installments/${id}/cancel`),
+  /** Everything printed on one recovery receipt (print / reprint). */
+  receipt: (planId: number, paymentId: number) => apiGet<InstallmentReceiptData>(`/installments/${planId}/payments/${paymentId}/receipt`),
 };
